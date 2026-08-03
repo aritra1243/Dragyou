@@ -15,12 +15,13 @@ type Config struct {
 	Env  string
 
 	// Database (PostgreSQL)
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
+	DatabaseURL string
+	DBHost      string
+	DBPort      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	DBSSLMode   string
 
 	// JWT
 	JWTSecret            string
@@ -43,6 +44,9 @@ type Config struct {
 
 // DSN returns a PostgreSQL connection string.
 func (c *Config) DSN() string {
+	if c.DatabaseURL != "" {
+		return c.DatabaseURL
+	}
 	return "host=" + c.DBHost +
 		" user=" + c.DBUser +
 		" password=" + c.DBPassword +
@@ -63,6 +67,7 @@ func Load() *Config {
 	cfg := &Config{
 		Port:            getEnv("PORT", "8080"),
 		Env:             getEnv("ENV", "development"),
+		DatabaseURL:     getEnv("DATABASE_URL", ""),
 		DBHost:          getEnv("DB_HOST", "localhost"),
 		DBPort:          getEnv("DB_PORT", "5432"),
 		DBUser:          getEnv("DB_USER", "dragyou"),
