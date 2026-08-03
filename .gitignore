@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Next.js build
+frontend/.next/
+frontend/out/
+
+# C++ Build artifacts
+backend/build/
+backend/hello-nova-test/
+backend/hello-nova-test2/
+*.exe
+*.dll
+*.obj
+*.lib
+*.a
+*.pdb
+
+# Local data & databases
+backend/server/repos/
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

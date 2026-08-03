@@ -1,0 +1,472 @@
+package api
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/dragyou/server/middleware"
+	"github.com/dragyou/server/models"
+	"gorm.io/gorm"
+)
+
+var repoNameRe = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]{1,255}$`)
+
+// ── Request/Response ──────────────────────────────────────────────────────
+
+type createRepoRequest struct {
+	Name          string           `json:"name"`
+	Description   string           `json:"description"`
+	Visibility    models.Visibility `json:"visibility"`
+	DefaultBranch string           `json:"default_branch"`
+	IsTemplate    bool             `json:"is_template"`
+}
+
+type repoResponse struct {
+	models.Repository
+	CloneURL string `json:"clone_url"`
+	SSHURL   string `json:"ssh_url"`
+}
+
+// ── Handlers ───────────────────────────────────────────────────────────────
+
+// POST /api/v1/repos
+func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
+	uid := middleware.GetUserID(r)
+	if uid == 0 {
+		respondError(w, http.StatusUnauthorized, "unauthorized", "Authentication required")
+		return
+	}
+
+	var req createRepoRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_json", "Request body is not valid JSON")
+		return
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	if !repoNameRe.MatchString(req.Name) {
+		respondError(w, http.StatusUnprocessableEntity, "invalid_name",
+			"Repository name must be 1–255 chars (letters, digits, -, _, .)")
+		return
+	}
+
+	if req.Visibility == "" {
+		req.Visibility = models.VisibilityPrivate
+	}
+	if req.DefaultBranch == "" {
+		req.DefaultBranch = "main"
+	}
+
+	// Fetch owner
+	var owner models.User
+	if err := h.db.First(&owner, uid).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Could not load user")
+		return
+	}
+
+	fullName := owner.Username + "/" + req.Name
+
+	// Check for duplicate
+	var existing models.Repository
+	if err := h.db.Where("full_name = ?", fullName).First(&existing).Error; err == nil {
+		respondError(w, http.StatusConflict, "already_exists",
+			"Repository "+fullName+" already exists")
+		return
+	}
+
+	// On-disk path
+	storagePath := h.engine.RepoPath(owner.Username, req.Name)
+
+	// Initialize .nova/ on disk
+	if err := h.engine.InitRepo(storagePath); err != nil {
+		respondError(w, http.StatusInternalServerError, "engine_error",
+			fmt.Sprintf("Could not initialize repository: %v", err))
+		return
+	}
+
+	repo := models.Repository{
+		OwnerID:       uid,
+		Name:          req.Name,
+		FullName:      fullName,
+		Description:   req.Description,
+		Visibility:    req.Visibility,
+		DefaultBranch: req.DefaultBranch,
+		StoragePath:   storagePath,
+		IsTemplate:    req.IsTemplate,
+	}
+
+	if err := h.db.Create(&repo).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Could not save repository")
+		return
+	}
+
+	// Add owner as member
+	h.db.Create(&models.RepositoryMember{
+		RepositoryID: repo.ID,
+		UserID:       uid,
+		Role:         models.RoleOwner,
+	})
+
+	respondJSON(w, http.StatusCreated, h.toRepoResponse(r, &repo))
+}
+
+// GET /api/v1/repos
+func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
+	uid := middleware.GetUserID(r)
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit := 20
+	offset := (page - 1) * limit
+
+	q := h.db.Preload("Owner").Order("created_at DESC").Limit(limit).Offset(offset)
+
+	if uid == 0 {
+		// Anonymous: only public repos
+		q = q.Where("visibility = ?", models.VisibilityPublic)
+	} else {
+		// Authenticated: own repos + public repos + repos user is member of
+		q = q.Where(`visibility = ? OR owner_id = ? OR id IN (
+			SELECT repository_id FROM repository_members WHERE user_id = ?
+		)`, models.VisibilityPublic, uid, uid)
+	}
+
+	var repos []models.Repository
+	if err := q.Find(&repos).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Could not list repositories")
+		return
+	}
+
+	var total int64
+	h.db.Model(&models.Repository{}).Count(&total)
+
+	type listResp struct {
+		Items      []repoResponse `json:"items"`
+		Page       int            `json:"page"`
+		Limit      int            `json:"limit"`
+		TotalCount int64          `json:"total_count"`
+	}
+
+	items := make([]repoResponse, len(repos))
+	for i := range repos {
+		items[i] = h.toRepoResponse(r, &repos[i])
+	}
+
+	respondJSON(w, http.StatusOK, listResp{
+		Items:      items,
+		Page:       page,
+		Limit:      limit,
+		TotalCount: total,
+	})
+}
+
+// GET /api/v1/repos/{owner}/{repo}
+func (h *Handler) GetRepo(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+	respondJSON(w, http.StatusOK, h.toRepoResponse(r, repo))
+}
+
+// DELETE /api/v1/repos/{owner}/{repo}
+func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
+	uid := middleware.GetUserID(r)
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	// Only owner or admin can delete
+	if repo.OwnerID != uid {
+		var member models.RepositoryMember
+		err := h.db.Where("repository_id = ? AND user_id = ? AND role IN ?",
+			repo.ID, uid, []models.RepoRole{models.RoleOwner, models.RoleAdmin}).
+			First(&member).Error
+		if err != nil {
+			respondError(w, http.StatusForbidden, "forbidden",
+				"Only the owner or admin can delete a repository")
+			return
+		}
+	}
+
+	if err := h.db.Delete(repo).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Could not delete repository")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": "repository deleted"})
+}
+
+// GET /api/v1/repos/{owner}/{repo}/commits
+func (h *Handler) GetCommits(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	max, _ := strconv.Atoi(r.URL.Query().Get("max"))
+	if max <= 0 {
+		max = 30
+	}
+
+	commits, err := h.engine.Log(repo.StoragePath, max)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "engine_error", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"commits": commits,
+		"repo":    repo.FullName,
+	})
+}
+
+// GET /api/v1/repos/{owner}/{repo}/branches
+func (h *Handler) GetBranches(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	branches, err := h.engine.Branches(repo.StoragePath)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "engine_error", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"branches":       branches,
+		"default_branch": repo.DefaultBranch,
+	})
+}
+
+// GET /api/v1/repos/{owner}/{repo}/tree/{ref}/*path
+func (h *Handler) GetTree(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	ref  := chi.URLParam(r, "ref")
+	path := chi.URLParam(r, "*")
+
+	tree, err := h.engine.TreeAt(repo.StoragePath, ref, path)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "engine_error", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"ref":   ref,
+		"path":  path,
+		"items": tree,
+	})
+}
+
+// GET /api/v1/repos/{owner}/{repo}/blob/{ref}/*path
+func (h *Handler) GetBlob(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	ref      := chi.URLParam(r, "ref")
+	filePath := chi.URLParam(r, "*")
+
+	content, err := h.engine.BlobAt(repo.StoragePath, ref, filePath)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "not_found",
+			fmt.Sprintf("File not found: %s @ %s", filePath, ref))
+		return
+	}
+
+	// Detect content type
+	ct := http.DetectContentType(content)
+	w.Header().Set("Content-Type", ct)
+	w.Header().Set("X-Blob-Path", filePath)
+	w.Header().Set("X-Blob-Ref", ref)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
+}
+
+// ── Pull Request handlers ─────────────────────────────────────────────────
+
+// POST /api/v1/repos/{owner}/{repo}/pulls
+func (h *Handler) CreatePullRequest(w http.ResponseWriter, r *http.Request) {
+	uid := middleware.GetUserID(r)
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	var req struct {
+		Title        string `json:"title"`
+		Body         string `json:"body"`
+		SourceBranch string `json:"source_branch"`
+		TargetBranch string `json:"target_branch"`
+		IsDraft      bool   `json:"is_draft"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_json", "Invalid request body")
+		return
+	}
+
+	if strings.TrimSpace(req.Title) == "" {
+		respondError(w, http.StatusUnprocessableEntity, "required", "Title is required")
+		return
+	}
+
+	pr := models.PullRequest{
+		RepositoryID: repo.ID,
+		AuthorID:     uid,
+		Title:        req.Title,
+		Body:         req.Body,
+		State:        models.PROpen,
+		SourceBranch: req.SourceBranch,
+		TargetBranch: req.TargetBranch,
+		IsDraft:      req.IsDraft,
+	}
+
+	if err := h.db.Create(&pr).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Could not create pull request")
+		return
+	}
+
+	h.db.Preload("Author").First(&pr, pr.ID)
+	respondJSON(w, http.StatusCreated, pr)
+}
+
+// GET /api/v1/repos/{owner}/{repo}/pulls
+func (h *Handler) ListPullRequests(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	state := r.URL.Query().Get("state")
+	if state == "" {
+		state = "open"
+	}
+
+	var prs []models.PullRequest
+	h.db.Preload("Author").
+		Where("repository_id = ? AND state = ?", repo.ID, state).
+		Order("created_at DESC").
+		Find(&prs)
+
+	respondJSON(w, http.StatusOK, map[string]any{"pull_requests": prs})
+}
+
+// ── Issue handlers ────────────────────────────────────────────────────────
+
+// POST /api/v1/repos/{owner}/{repo}/issues
+func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
+	uid := middleware.GetUserID(r)
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	var req struct {
+		Title string `json:"title"`
+		Body  string `json:"body"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+
+	// Get next issue number for this repo
+	var count int64
+	h.db.Model(&models.Issue{}).Where("repository_id = ?", repo.ID).Count(&count)
+
+	issue := models.Issue{
+		RepositoryID: repo.ID,
+		AuthorID:     uid,
+		Number:       int(count) + 1,
+		Title:        req.Title,
+		Body:         req.Body,
+		State:        models.IssueOpen,
+	}
+
+	if err := h.db.Create(&issue).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Could not create issue")
+		return
+	}
+
+	h.db.Preload("Author").First(&issue, issue.ID)
+	respondJSON(w, http.StatusCreated, issue)
+}
+
+// GET /api/v1/repos/{owner}/{repo}/issues
+func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	state := r.URL.Query().Get("state")
+	if state == "" {
+		state = "open"
+	}
+
+	var issues []models.Issue
+	h.db.Preload("Author").
+		Where("repository_id = ? AND state = ?", repo.ID, state).
+		Order("number ASC").
+		Find(&issues)
+
+	respondJSON(w, http.StatusOK, map[string]any{"issues": issues})
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+func (h *Handler) loadRepo(w http.ResponseWriter, r *http.Request) (*models.Repository, bool) {
+	owner := chi.URLParam(r, "owner")
+	name  := chi.URLParam(r, "repo")
+	fullName := owner + "/" + name
+
+	var repo models.Repository
+	if err := h.db.Preload("Owner").Where("full_name = ?", fullName).First(&repo).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			respondError(w, http.StatusNotFound, "not_found",
+				"Repository "+fullName+" not found")
+			return nil, false
+		}
+		respondError(w, http.StatusInternalServerError, "db_error", "Database error")
+		return nil, false
+	}
+
+	// Visibility check
+	uid := middleware.GetUserID(r)
+	if repo.Visibility == models.VisibilityPrivate && repo.OwnerID != uid {
+		var member models.RepositoryMember
+		if err := h.db.Where("repository_id = ? AND user_id = ?", repo.ID, uid).
+			First(&member).Error; err != nil {
+			respondError(w, http.StatusNotFound, "not_found",
+				"Repository not found or access denied")
+			return nil, false
+		}
+	}
+
+	return &repo, true
+}
+
+func (h *Handler) toRepoResponse(r *http.Request, repo *models.Repository) repoResponse {
+	host := r.Host
+	return repoResponse{
+		Repository: *repo,
+		CloneURL:   fmt.Sprintf("http://%s/api/v1/repos/%s.nova", host, repo.FullName),
+		SSHURL:     fmt.Sprintf("nova@%s:%s.nova", host, repo.FullName),
+	}
+}
+
+// ── Date formatting helper ────────────────────────────────────────────────
+var _ = time.Now // suppress unused import if time is only used in models
