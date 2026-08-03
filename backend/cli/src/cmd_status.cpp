@@ -5,6 +5,7 @@
 #include "repository.h"
 #include "index.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <set>
