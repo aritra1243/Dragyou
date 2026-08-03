@@ -1,6 +1,6 @@
 # Stage 1: Build C++ Nova Engine
 FROM alpine:3.19 AS cpp-builder
-RUN apk add --no-cache build-base cmake zlib-dev
+RUN apk add --no-cache build-base cmake zlib-dev curl-dev
 WORKDIR /app
 COPY backend/ /app/
 RUN mkdir -p build && cd build && cmake .. && make -j$(nproc)
@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o server .
 
 # Stage 3: Minimal Production Image
 FROM alpine:3.19
-RUN apk add --no-cache ca-certificates zlib libstdc++ libgcc
+RUN apk add --no-cache ca-certificates zlib libstdc++ libgcc curl
 WORKDIR /app
 COPY --from=cpp-builder /app/build/bin/nova /app/nova
 COPY --from=go-builder /app/server /app/server
