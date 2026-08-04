@@ -92,7 +92,7 @@ func Load() *Config {
 		NovaBin:         getEnv("NOVA_BIN", ""),
 		RateLimitAnon:   getEnvInt("RATE_LIMIT_ANON", 100),
 		RateLimitAuthed: getEnvInt("RATE_LIMIT_AUTHED", 1000),
-		AllowedOrigins:  []string{getEnv("CORS_ORIGIN", "http://localhost:3000")},
+		AllowedOrigins:  parseCORSOrigins(getEnv("CORS_ORIGIN", "http://localhost:3000")),
 	}
 
 	if cfg.JWTSecret == "change-me-in-production-use-32+chars" && cfg.Env == "production" {
@@ -119,4 +119,19 @@ func getEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+// parseCORSOrigins splits a comma-separated list of allowed origins.
+// Example env var value:
+//
+//	CORS_ORIGIN=https://dragyou-mauve.vercel.app,http://localhost:3000
+func parseCORSOrigins(raw string) []string {
+	parts := strings.Split(raw, ",")
+	origins := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if o := strings.TrimSpace(p); o != "" {
+			origins = append(origins, o)
+		}
+	}
+	return origins
 }
