@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Code, Plus, Star, GitBranch, Search, Lock, Globe, X, FolderGit2, Terminal, Check, Copy, LogIn, UserPlus } from 'lucide-react';
-import { api, Repository, User } from '@/lib/api';
+import { api, Repository, User, getCloneUrl } from '@/lib/api';
 
 function ReposContent() {
   const searchParams = useSearchParams();
@@ -98,7 +98,9 @@ function ReposContent() {
   };
 
   const copyClone = (repoFullName: string, id: number) => {
-    navigator.clipboard.writeText(`nova clone http://localhost:8080/api/v1/repos/${repoFullName}`);
+    const parts = repoFullName.split('/');
+    const url = getCloneUrl(parts[0] || '', parts[1] || repoFullName);
+    navigator.clipboard.writeText(`nova clone ${url}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };

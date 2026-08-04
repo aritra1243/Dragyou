@@ -1,4 +1,23 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+export function getApiBase(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+    return 'https://dragyou-backend.onrender.com/api/v1';
+  }
+  return 'http://localhost:8080/api/v1';
+}
+
+export function getCloneUrl(owner: string, repo: string): string {
+  return `${getApiBase()}/repos/${owner}/${repo}`;
+}
+
+export function fmtSize(n?: number | null): string {
+  if (n === undefined || n === null) return '—';
+  if (n < 1024) return `${n} B`;
+  if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1048576).toFixed(1)} MB`;
+}
 
 export interface User {
   id: number;
@@ -88,7 +107,8 @@ async function fetcher<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const base = getApiBase();
+  const res = await fetch(`${base}${endpoint}`, {
     ...options,
     headers,
   });
@@ -123,7 +143,8 @@ export const api = {
   },
   getBlob: async (owner: string, repo: string, ref = 'main', path = ''): Promise<string> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('dragyou_token') : null;
-    const res = await fetch(`${API_BASE}/repos/${owner}/${repo}/blob/${ref}/${path}`, {
+    const base = getApiBase();
+    const res = await fetch(`${base}/repos/${owner}/${repo}/blob/${ref}/${path}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error('Failed to load blob content');
@@ -144,7 +165,8 @@ export const api = {
     form.append('branch', branch);
     files.forEach(f => form.append('files[]', f));
 
-    const res = await fetch(`${API_BASE}/repos/${owner}/${repo}/upload`, {
+    const base = getApiBase();
+    const res = await fetch(`${base}/repos/${owner}/${repo}/upload`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -156,3 +178,4 @@ export const api = {
     return res.json();
   },
 };
+

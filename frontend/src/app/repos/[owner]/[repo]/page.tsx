@@ -9,7 +9,7 @@ import {
   Clock, User, Layers, RefreshCw, ArrowLeft, Eye, Download, Star,
   GitFork, Shield, Cpu, Package, FileCode, Upload, X, CloudUpload
 } from 'lucide-react';
-import { api, Repository, TreeItem, Branch, Commit } from '@/lib/api';
+import { api, Repository, TreeItem, Branch, Commit, getCloneUrl, fmtSize } from '@/lib/api';
 
 interface Props {
   params: { owner: string; repo: string };
@@ -140,16 +140,20 @@ function DropZone({
           <div className="flex flex-wrap gap-2">
             {files.map(f => (
               <div key={f.name}
-                className="flex items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-200"
+                className="flex items-center gap-2 bg-gray-800/90 border border-gray-700/80 rounded-xl px-3 py-1.5 text-xs font-mono text-gray-200 shadow-sm"
               >
-                <FileText size={11} className="text-blue-400" />
-                <span className="max-w-[160px] truncate">{f.name}</span>
-                <span className="text-gray-500 ml-1">{fmtSize(f.size)}</span>
+                <FileText size={13} className="text-blue-400 flex-shrink-0" />
+                <span className="max-w-[180px] truncate font-medium text-gray-100">{f.name}</span>
+                <span className="text-[10px] text-gray-300 bg-gray-950 px-2 py-0.5 rounded-md border border-gray-700 font-mono font-normal">
+                  {fmtSize(f.size)}
+                </span>
                 <button
-                  onClick={() => removeFile(f.name)}
-                  className="ml-1 text-gray-500 hover:text-red-400 transition-colors"
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); removeFile(f.name); }}
+                  className="p-0.5 text-gray-400 hover:text-red-400 hover:bg-gray-700/50 rounded transition-colors"
+                  title="Remove file"
                 >
-                  <X size={11} />
+                  <X size={12} />
                 </button>
               </div>
             ))}
@@ -244,7 +248,7 @@ function Sidebar({ owner, repo }: { owner: string; repo: string }) {
       <div className="rounded-xl border border-gray-800/80 bg-gray-950/60 p-3 space-y-2">
         <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500">Clone</p>
         <code className="block text-[10px] font-mono text-blue-400 break-all leading-relaxed select-all">
-          nova clone http://localhost:8080/api/v1/repos/{owner}/{repo}
+          nova clone {getCloneUrl(owner, repo)}
         </code>
       </div>
     </aside>
@@ -313,7 +317,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
   }, [owner, repo, selectedBranch, currentPath, viewMode, loadTree]);
 
   const copyClone = () => {
-    navigator.clipboard.writeText(`nova clone http://localhost:8080/api/v1/repos/${owner}/${repo}`);
+    navigator.clipboard.writeText(`nova clone ${getCloneUrl(owner, repo)}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -583,11 +587,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
 
                         {/* Size */}
                         <span className="text-[11px] font-mono text-gray-500 whitespace-nowrap">
-                          {!isDir && item.size !== undefined ? (
-                            item.size < 1024
-                              ? `${item.size} B`
-                              : `${(item.size / 1024).toFixed(1)} KB`
-                          ) : '—'}
+                          {!isDir ? fmtSize(item.size) : '—'}
                         </span>
 
                         {/* Mode */}

@@ -724,7 +724,7 @@ type TreeEntry struct {
 	Type string `json:"type"` // "blob" or "tree"
 	Hash string `json:"hash"`
 	Mode string `json:"mode"`
-	Size int64  `json:"size,omitempty"`
+	Size int64  `json:"size"`
 }
 
 // ── internal ──────────────────────────────────────────────────────────────

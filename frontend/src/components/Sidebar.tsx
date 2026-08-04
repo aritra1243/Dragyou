@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Code, GitCommit, GitBranch, GitPullRequest, AlertCircle, Settings, FileText, Share2 } from 'lucide-react';
+import { getCloneUrl } from '@/lib/api';
 
 interface SidebarProps {
   owner: string;
@@ -62,7 +63,7 @@ export default function Sidebar({ owner, repo }: SidebarProps) {
         <div className="mt-2 space-y-2 text-[11px] font-mono bg-gray-900/90 p-3 rounded-xl border border-gray-800/80">
           <div className="text-gray-400"># Clone repo</div>
           <div className="text-blue-400 select-all overflow-x-auto whitespace-nowrap">
-            nova clone http://localhost:8080/api/v1/repos/{owner}/{repo}.nova
+            nova clone {getCloneUrl(owner, repo)}
           </div>
         </div>
       </div>
