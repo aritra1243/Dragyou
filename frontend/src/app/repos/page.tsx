@@ -9,6 +9,7 @@ import { api, Repository, User } from '@/lib/api';
 function ReposContent() {
   const searchParams = useSearchParams();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false); // true once localStorage has been read
   const [repos, setRepos] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -23,6 +24,7 @@ function ReposContent() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Read auth state from localStorage ONCE on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('dragyou_user');
     if (savedUser) {
@@ -33,6 +35,7 @@ function ReposContent() {
     } else {
       setLoading(false);
     }
+    setAuthChecked(true); // mark that we've finished reading localStorage
   }, []);
 
   useEffect(() => {
@@ -45,15 +48,17 @@ function ReposContent() {
     }
   }, [currentUser]);
 
+  // Only handle ?new=true AFTER we've confirmed whether user is logged in
   useEffect(() => {
+    if (!authChecked) return; // wait for localStorage read to complete
     if (searchParams.get('new') === 'true') {
       if (currentUser) {
         setShowModal(true);
       } else {
-        window.location.href = '/login';
+        window.location.href = '/login?redirect=/repos?new=true';
       }
     }
-  }, [searchParams, currentUser]);
+  }, [searchParams, currentUser, authChecked]);
 
   const loadRepos = () => {
     if (currentUser) {

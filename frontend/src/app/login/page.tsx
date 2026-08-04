@@ -1,15 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
-import { LogIn, Key, User as UserIcon, Lock } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { User as UserIcon, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // If already logged in, redirect away — never show login to authenticated users
+  useEffect(() => {
+    const token = localStorage.getItem('dragyou_token');
+    if (token) {
+      const redirect = searchParams.get('redirect') || '/';
+      window.location.href = redirect;
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +31,8 @@ export default function LoginPage() {
       const res = await api.login({ username, password });
       localStorage.setItem('dragyou_token', res.access_token);
       localStorage.setItem('dragyou_user', JSON.stringify(res.user));
-      window.location.href = '/';
+      const redirect = searchParams.get('redirect') || '/';
+      window.location.href = redirect;
     } catch (err: any) {
       setError(err.message || 'Invalid username or password');
     } finally {
@@ -93,5 +105,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="max-w-md mx-auto my-12 text-center text-gray-400 text-sm">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
