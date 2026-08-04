@@ -94,8 +94,8 @@ func Load() *Config {
 		DBName:          getEnv("DB_NAME", "dragyou"),
 		DBSSLMode:       getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:       getEnv("JWT_SECRET", "change-me-in-production-use-32+chars"),
-		JWTExpiryMinutes:     getEnvInt("JWT_EXPIRY_MINUTES", 15),
-		JWTRefreshExpiryDays: getEnvInt("JWT_REFRESH_EXPIRY_DAYS", 7),
+		JWTExpiryMinutes:     getEnvInt("JWT_EXPIRY_MINUTES", 43200), // 30 days default for web app sessions
+		JWTRefreshExpiryDays: getEnvInt("JWT_REFRESH_EXPIRY_DAYS", 90),
 		RepoStoragePath: getEnv("REPO_STORAGE_PATH", "./repos"),
 		NovaBin:         getEnv("NOVA_BIN", ""),
 		RateLimitAnon:   getEnvInt("RATE_LIMIT_ANON", 100),

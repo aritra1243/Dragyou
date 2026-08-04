@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -38,14 +39,30 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 	r.Use(middleware.CleanPath)
 	r.Use(middleware.StripSlashes)
 
-	// CORS
+	// CORS — dynamic matching for Vercel, localhost, and custom CORS_ORIGIN
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   cfg.AllowedOrigins,
+		AllowOriginFunc: func(r *http.Request, origin string) bool {
+			if origin == "" {
+				return true
+			}
+			if strings.HasPrefix(origin, "http://localhost") || strings.HasPrefix(origin, "http://127.0.0.1") {
+				return true
+			}
+			if strings.HasSuffix(origin, ".vercel.app") {
+				return true
+			}
+			for _, allowed := range cfg.AllowedOrigins {
+				if allowed == "*" || allowed == origin {
+					return true
+				}
+			}
+			return false
+		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID", "X-Dragyou-Ref", "X-Dragyou-Tip"},
 		ExposedHeaders:   []string{"Link", "X-Total-Count", "X-Request-ID"},
 		AllowCredentials: true,
-		MaxAge:           300,
+		MaxAge:           86400,
 	}))
 
 	// Rate limiting (runs after optional auth so we can distinguish anon vs authed)

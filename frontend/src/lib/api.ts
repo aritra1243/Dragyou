@@ -114,8 +114,12 @@ async function fetcher<T>(endpoint: string, options: RequestInit = {}): Promise<
   });
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('dragyou_token');
+      localStorage.removeItem('dragyou_user');
+    }
     const errorData = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(errorData.detail || errorData.error || 'API Request failed');
+    throw new Error(errorData.detail || errorData.error || (res.status === 401 ? 'Session expired. Please sign in again.' : 'API Request failed'));
   }
 
   return res.json();
@@ -160,6 +164,9 @@ export const api = {
   // Web upload — drag-and-drop commit
   uploadFiles: async (owner: string, repo: string, files: File[], message: string, branch: string): Promise<{ commit: string; files: number; branch: string; message: string }> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('dragyou_token') : null;
+    if (!token) {
+      throw new Error('Authentication required. Please sign in again to push files.');
+    }
     const form = new FormData();
     form.append('message', message);
     form.append('branch', branch);
@@ -168,12 +175,18 @@ export const api = {
     const base = getApiBase();
     const res = await fetch(`${base}/repos/${owner}/${repo}/upload`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: { Authorization: `Bearer ${token}` },
       body: form,
     });
     if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('dragyou_token');
+          localStorage.removeItem('dragyou_user');
+        }
+      }
       const err = await res.json().catch(() => ({ detail: res.statusText }));
-      throw new Error(err.detail || err.error || 'Upload failed');
+      throw new Error(err.detail || err.error || (res.status === 401 ? 'Session expired. Please sign in again.' : 'Upload failed'));
     }
     return res.json();
   },
