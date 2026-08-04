@@ -101,6 +101,9 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 				r.Post("/fetch", h.Fetch)
 				r.Post("/clone", h.Clone)
 
+				// Web upload (drag-and-drop from browser)
+				r.With(mw.Auth(cfg.JWTSecret)).Post("/upload", h.UploadFiles)
+
 				// Pull Requests
 				r.Route("/pulls", func(r chi.Router) {
 					r.Get("/", h.ListPullRequests)

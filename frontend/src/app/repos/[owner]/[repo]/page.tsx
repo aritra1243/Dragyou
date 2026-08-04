@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, Suspense, useCallback } from 'react';
+import React, { useEffect, useState, Suspense, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Code, GitCommit, GitBranch, GitPullRequest, AlertCircle, Settings,
   Folder, FileText, ChevronRight, Copy, Check, Terminal, Hash,
   Clock, User, Layers, RefreshCw, ArrowLeft, Eye, Download, Star,
-  GitFork, Shield, Cpu, Package, FileCode
+  GitFork, Shield, Cpu, Package, FileCode, Upload, X, CloudUpload
 } from 'lucide-react';
 import { api, Repository, TreeItem, Branch, Commit } from '@/lib/api';
 
@@ -42,6 +42,166 @@ function relativeTime(ts: number) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+}
+
+// ── DropZone ──────────────────────────────────────────────────────────────
+function DropZone({
+  owner, repo, branch, onSuccess,
+}: {
+  owner: string; repo: string; branch: string; onSuccess: () => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const [files, setFiles]       = useState<File[]>([]);
+  const [message, setMessage]   = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [result, setResult]     = useState<{ ok: boolean; text: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const addFiles = (incoming: FileList | File[]) => {
+    const arr = Array.from(incoming);
+    setFiles(prev => {
+      const names = new Set(prev.map(f => f.name));
+      return [...prev, ...arr.filter(f => !names.has(f.name))];
+    });
+    setResult(null);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  };
+
+  const removeFile = (name: string) =>
+    setFiles(prev => prev.filter(f => f.name !== name));
+
+  const handlePush = async () => {
+    if (!files.length) return;
+    setUploading(true);
+    setResult(null);
+    try {
+      const res = await api.uploadFiles(owner, repo, files, message || 'Upload files via web', branch);
+      setResult({ ok: true, text: `✓ Committed ${res.files} file${res.files !== 1 ? 's' : ''} — ${res.commit}` });
+      setFiles([]);
+      setMessage('');
+      onSuccess();
+    } catch (err: any) {
+      setResult({ ok: false, text: err.message || 'Upload failed' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const fmtSize = (n: number) =>
+    n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`;
+
+  return (
+    <div className="rounded-2xl border border-dashed border-gray-700 bg-gray-900/40 overflow-hidden transition-all">
+      {/* Drop area */}
+      <div
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`relative flex flex-col items-center justify-center gap-3 py-8 px-6 cursor-pointer transition-all ${
+          dragging
+            ? 'bg-blue-500/10 border-blue-500/60 scale-[1.01]'
+            : 'hover:bg-white/[0.02]'
+        }`}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={e => e.target.files && addFiles(e.target.files)}
+        />
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+          dragging ? 'bg-blue-500/20 text-blue-400 scale-110' : 'bg-gray-800 text-gray-500'
+        }`}>
+          <CloudUpload size={20} />
+        </div>
+        <div className="text-center">
+          <p className={`text-sm font-semibold transition-colors ${
+            dragging ? 'text-blue-400' : 'text-gray-300'
+          }`}>
+            {dragging ? 'Drop to add files' : 'Drag & drop files here'}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5 font-mono">
+            or click to browse — up to 50 files, 50 MB each
+          </p>
+        </div>
+      </div>
+
+      {/* File list + commit form */}
+      {files.length > 0 && (
+        <div className="border-t border-gray-800 px-4 py-4 space-y-3">
+          {/* File chips */}
+          <div className="flex flex-wrap gap-2">
+            {files.map(f => (
+              <div key={f.name}
+                className="flex items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-200"
+              >
+                <FileText size={11} className="text-blue-400" />
+                <span className="max-w-[160px] truncate">{f.name}</span>
+                <span className="text-gray-500 ml-1">{fmtSize(f.size)}</span>
+                <button
+                  onClick={() => removeFile(f.name)}
+                  className="ml-1 text-gray-500 hover:text-red-400 transition-colors"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Commit message */}
+          <textarea
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            placeholder="Commit message (e.g. Add project files)"
+            rows={2}
+            className="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-xs font-mono text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none"
+          />
+
+          {/* Result banner */}
+          {result && (
+            <div className={`px-3 py-2 rounded-lg text-xs font-mono ${
+              result.ok
+                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/10 border border-red-500/30 text-red-400'
+            }`}>
+              {result.text}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500 font-mono">
+              {files.length} file{files.length !== 1 ? 's' : ''} staged → <span className="text-blue-400">{branch}</span>
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setFiles([]); setMessage(''); setResult(null); }}
+                className="px-3 py-1.5 rounded-lg text-xs font-mono text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-all"
+              >
+                Clear
+              </button>
+              <button
+                onClick={handlePush}
+                disabled={uploading}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95"
+              >
+                {uploading
+                  ? <><RefreshCw size={12} className="animate-spin" /> Pushing…</>
+                  : <><Upload size={12} /> Push Files</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────
@@ -109,6 +269,12 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
   const [copied, setCopied]           = useState(false);
   const [activeTab, setActiveTab]     = useState<'files'|'commits'>('files');
   const [error, setError]             = useState('');
+  const [currentUser, setCurrentUser] = useState<{ username: string } | null>(null);
+
+  useEffect(() => {
+    const u = localStorage.getItem('dragyou_user');
+    if (u) try { setCurrentUser(JSON.parse(u)); } catch {}
+  }, []);
 
   // Load repo metadata + branches + commits
   useEffect(() => {
@@ -432,6 +598,19 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
                 </div>
               )}
             </div>
+
+            {/* ── Drop Zone ────────────────────────────── */}
+            {currentUser && owner === currentUser.username && (
+              <DropZone
+                owner={owner}
+                repo={repo}
+                branch={selectedBranch}
+                onSuccess={() => {
+                  loadTree();
+                  api.getCommits(owner, repo, 20).then(d => setCommits(d.commits || []));
+                }}
+              />
+            )}
           </div>
 
         /* ── COMMITS TAB ──────────────────────────────────────── */

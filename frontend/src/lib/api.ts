@@ -135,4 +135,24 @@ export const api = {
   createPullRequest: (owner: string, repo: string, data: any) => fetcher<PullRequest>(`/repos/${owner}/${repo}/pulls`, { method: 'POST', body: JSON.stringify(data) }),
   listIssues: (owner: string, repo: string) => fetcher<{ issues: Issue[] }>(`/repos/${owner}/${repo}/issues`),
   createIssue: (owner: string, repo: string, data: any) => fetcher<Issue>(`/repos/${owner}/${repo}/issues`, { method: 'POST', body: JSON.stringify(data) }),
+
+  // Web upload — drag-and-drop commit
+  uploadFiles: async (owner: string, repo: string, files: File[], message: string, branch: string): Promise<{ commit: string; files: number; branch: string; message: string }> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('dragyou_token') : null;
+    const form = new FormData();
+    form.append('message', message);
+    form.append('branch', branch);
+    files.forEach(f => form.append('files[]', f));
+
+    const res = await fetch(`${API_BASE}/repos/${owner}/${repo}/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || err.error || 'Upload failed');
+    }
+    return res.json();
+  },
 };

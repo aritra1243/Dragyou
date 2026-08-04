@@ -3,13 +3,17 @@ package engine
 import (
 	"bytes"
 	"compress/zlib"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 )
 
 // Bridge is the interface between the Go server and the C++ nova engine.
@@ -737,3 +741,178 @@ func (b *Bridge) run(cwd string, args ...string) (string, error) {
 	}
 	return result, nil
 }
+
+// ── Web-upload helpers ─────────────────────────────────────────────────────
+
+// treeWriteEntry is an in-memory tree entry used when building a new tree object.
+type treeWriteEntry struct {
+	mode string // e.g. "100644" or "040000"
+	name string
+	hash string // 64-char hex SHA-256
+}
+
+// writeObject hashes content with SHA-256, zlib-compresses it, and stores it
+// under .nova/objects/<prefix2>/<rest64>. Returns the 64-char hex hash.
+// If the object already exists it is a no-op (content-addressed store).
+func writeObject(novaDir, objType string, content []byte) (string, error) {
+	// Build full object bytes: "<type> <size>\0<content>"
+	header := fmt.Sprintf("%s %d\x00", objType, len(content))
+	full := append([]byte(header), content...)
+
+	// SHA-256 of the full (uncompressed) object
+	sum := sha256.Sum256(full)
+	hashStr := fmt.Sprintf("%x", sum)
+
+	objDir := filepath.Join(novaDir, "objects", hashStr[:2])
+	objPath := filepath.Join(objDir, hashStr[2:])
+
+	// Skip write if already present (idempotent)
+	if _, err := os.Stat(objPath); err == nil {
+		return hashStr, nil
+	}
+
+	// zlib compress
+	var zbuf bytes.Buffer
+	zw := zlib.NewWriter(&zbuf)
+	if _, err := zw.Write(full); err != nil {
+		return "", fmt.Errorf("zlib write: %w", err)
+	}
+	zw.Close()
+
+	if err := os.MkdirAll(objDir, 0o755); err != nil {
+		return "", fmt.Errorf("mkdirall: %w", err)
+	}
+	if err := os.WriteFile(objPath, zbuf.Bytes(), 0o644); err != nil {
+		return "", fmt.Errorf("write object: %w", err)
+	}
+	return hashStr, nil
+}
+
+// writeTree serialises tree entries in nova binary format and stores the result
+// as a tree object. Returns the 64-char hex hash of the tree.
+// Wire format per entry: "<mode> <name>\0<32 raw SHA-256 bytes>"
+func writeTree(novaDir string, entries []treeWriteEntry) (string, error) {
+	var buf bytes.Buffer
+	for _, e := range entries {
+		buf.WriteString(e.mode + " " + e.name + "\x00")
+		hashBytes, err := hex.DecodeString(e.hash)
+		if err != nil {
+			return "", fmt.Errorf("invalid hash for %s: %w", e.name, err)
+		}
+		buf.Write(hashBytes)
+	}
+	return writeObject(novaDir, "tree", buf.Bytes())
+}
+
+// WebCommit creates a commit directly in the nova object store without the CLI.
+// It:
+//  1. Writes each file as a blob object
+//  2. Reads the current HEAD tree (if any) and overlays the new blobs
+//  3. Writes a new tree object
+//  4. Writes a new commit object pointing to the tree and the previous HEAD
+//  5. Updates refs/heads/<branch> and HEAD
+func (b *Bridge) WebCommit(
+	repoPath, branch, message, authorName, authorEmail string,
+	files map[string][]byte,
+) (string, error) {
+	novaDir := filepath.Join(repoPath, ".nova")
+
+	// Ensure basic directory structure exists
+	for _, d := range []string{
+		filepath.Join(novaDir, "objects"),
+		filepath.Join(novaDir, "refs", "heads"),
+	} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			return "", fmt.Errorf("mkdir %s: %w", d, err)
+		}
+	}
+
+	// 1. Write blob objects
+	blobHashes := make(map[string]string, len(files))
+	for name, content := range files {
+		h, err := writeObject(novaDir, "blob", content)
+		if err != nil {
+			return "", fmt.Errorf("write blob %q: %w", name, err)
+		}
+		blobHashes[name] = h
+	}
+
+	// 2. Build tree entries: start from current HEAD tree, overlay new blobs
+	var entries []treeWriteEntry
+
+	currentCommitHash, _ := resolveRef(novaDir, branch)
+	if currentCommitHash != "" {
+		commitData, _, err := readObject(novaDir, currentCommitHash)
+		if err == nil {
+			if treeHash := parseCommitTreeHash(commitData); treeHash != "" {
+				existing, _ := readTreeEntries(novaDir, treeHash)
+				for _, e := range existing {
+					if _, overwritten := blobHashes[e.Name]; !overwritten {
+						entries = append(entries, treeWriteEntry{
+							mode: e.Mode,
+							name: e.Name,
+							hash: e.Hash,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	// Add / overwrite with the uploaded files
+	for name, hash := range blobHashes {
+		entries = append(entries, treeWriteEntry{
+			mode: "100644",
+			name: name,
+			hash: hash,
+		})
+	}
+
+	// Sort alphabetically (standard git tree order)
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].name < entries[j].name
+	})
+
+	// 3. Write tree object
+	treeHash, err := writeTree(novaDir, entries)
+	if err != nil {
+		return "", fmt.Errorf("write tree: %w", err)
+	}
+
+	// 4. Build commit text
+	now := time.Now()
+	tz := "+0000"
+	ts := now.Unix()
+
+	var commitBuf strings.Builder
+	commitBuf.WriteString(fmt.Sprintf("tree %s\n", treeHash))
+	if currentCommitHash != "" {
+		commitBuf.WriteString(fmt.Sprintf("parent %s\n", currentCommitHash))
+	}
+	commitBuf.WriteString(fmt.Sprintf("author %s <%s> %d %s\n", authorName, authorEmail, ts, tz))
+	commitBuf.WriteString(fmt.Sprintf("committer %s <%s> %d %s\n", authorName, authorEmail, ts, tz))
+	commitBuf.WriteString(fmt.Sprintf("\n%s\n", message))
+
+	commitHash, err := writeObject(novaDir, "commit", []byte(commitBuf.String()))
+	if err != nil {
+		return "", fmt.Errorf("write commit: %w", err)
+	}
+
+	// 5. Update ref
+	ref := "refs/heads/" + branch
+	if err := b.UpdateRef(repoPath, ref, commitHash); err != nil {
+		return "", fmt.Errorf("update ref: %w", err)
+	}
+
+	// Ensure HEAD points to this branch
+	headPath := filepath.Join(novaDir, "HEAD")
+	if _, err := os.Stat(headPath); os.IsNotExist(err) {
+		_ = os.WriteFile(headPath, []byte("ref: refs/heads/"+branch+"\n"), 0o644)
+	} else {
+		// Update HEAD to point to this branch (in case it's detached)
+		_ = os.WriteFile(headPath, []byte("ref: refs/heads/"+branch+"\n"), 0o644)
+	}
+
+	return commitHash, nil
+}
+
