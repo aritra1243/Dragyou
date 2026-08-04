@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -43,8 +44,17 @@ type Config struct {
 }
 
 // DSN returns a PostgreSQL connection string.
+// prefer_simple_protocol=true disables pgx named-prepared-statement caching,
+// which prevents "prepared statement already exists" (SQLSTATE 42P05) errors
+// on Render / PgBouncer-backed databases where connections are reused across
+// process restarts without a clean session teardown.
 func (c *Config) DSN() string {
 	if c.DatabaseURL != "" {
+		// Append the simple-protocol flag if it isn't already present so that
+		// DATABASE_URL supplied by Render also benefits from it.
+		if !strings.Contains(c.DatabaseURL, "prefer_simple_protocol") {
+			return c.DatabaseURL + "?prefer_simple_protocol=true"
+		}
 		return c.DatabaseURL
 	}
 	return "host=" + c.DBHost +
@@ -53,7 +63,8 @@ func (c *Config) DSN() string {
 		" dbname=" + c.DBName +
 		" port=" + c.DBPort +
 		" sslmode=" + c.DBSSLMode +
-		" TimeZone=UTC"
+		" TimeZone=UTC" +
+		" prefer_simple_protocol=true"
 }
 
 // Load reads configuration from environment variables (and optionally .env).
