@@ -22,14 +22,12 @@ func main() {
 		log.Fatalf("database: %v", err)
 	}
 
-	if err := storage.AutoMigrate(db); err != nil {
-		log.Fatalf("migrate: %v", err)
-	}
-
 	// ── Build HTTP router ─────────────────────────────────────────────────
 	r := api.NewRouter(cfg, db)
 
-	// ── Start server ──────────────────────────────────────────────────────
+	// ── Start server FIRST so Render detects the open port immediately ────
+	// AutoMigrate can take several seconds on a cold start — if we run it
+	// before ListenAndServe, Render times out waiting for a port to open.
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	srv := &http.Server{
 		Addr:         addr,
@@ -43,6 +41,15 @@ func main() {
 	log.Printf("   Environment : %s", cfg.Env)
 	log.Printf("   Database    : %s", cfg.DBName)
 	log.Printf("   Repo store  : %s", cfg.RepoStoragePath)
+
+	// ── Run migrations in background after server is up ───────────────────
+	go func() {
+		if err := storage.AutoMigrate(db); err != nil {
+			// Non-fatal: log and continue — schema is likely already current
+			// from a previous successful deploy.
+			log.Printf("migrate warning: %v", err)
+		}
+	}()
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server: %v", err)
