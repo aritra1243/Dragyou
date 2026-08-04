@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -50,10 +51,17 @@ type Config struct {
 // process restarts without a clean session teardown.
 func (c *Config) DSN() string {
 	if c.DatabaseURL != "" {
-		// Append the simple-protocol flag if it isn't already present so that
-		// DATABASE_URL supplied by Render also benefits from it.
+		// Safely append prefer_simple_protocol using proper URL query handling
+		// so we use & instead of ? when query params already exist.
 		if !strings.Contains(c.DatabaseURL, "prefer_simple_protocol") {
-			return c.DatabaseURL + "?prefer_simple_protocol=true"
+			u, err := url.Parse(c.DatabaseURL)
+			if err == nil {
+				q := u.Query()
+				q.Set("prefer_simple_protocol", "true")
+				u.RawQuery = q.Encode()
+				return u.String()
+			}
+			// Fallback if parsing fails: return as-is
 		}
 		return c.DatabaseURL
 	}
