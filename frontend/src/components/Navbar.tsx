@@ -7,6 +7,7 @@ import { User } from '@/lib/api';
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadUser = () => {
@@ -62,17 +63,34 @@ export default function Navbar() {
 
         {/* Global Search Bar */}
         <div className="flex-1 max-w-md mx-6 hidden sm:block">
-          <div className="relative">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const q = searchQuery.trim();
+              if (!q) return;
+              if (q.includes('/')) {
+                const parts = q.split('/');
+                window.location.href = `/repos/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`;
+              } else if (q.startsWith('@')) {
+                window.location.href = `/users/${encodeURIComponent(q.slice(1))}`;
+              } else {
+                window.location.href = `/users/${encodeURIComponent(q)}`;
+              }
+            }}
+            className="relative"
+          >
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search code, repositories, commits... (nova search)"
-              className="w-full bg-gray-900/80 border border-gray-800 rounded-xl pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search user (@username) or repo (owner/repo)..."
+              className="w-full bg-gray-900/80 border border-gray-800 rounded-xl pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
             />
             <kbd className="absolute right-3 top-2.5 px-1.5 py-0.5 text-[10px] font-mono text-gray-400 bg-gray-800 rounded border border-gray-700">
-              Ctrl K
+              Enter ↵
             </kbd>
-          </div>
+          </form>
         </div>
 
         {/* Action Controls */}
