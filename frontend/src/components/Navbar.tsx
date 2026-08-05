@@ -216,7 +216,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-800 bg-gray-950/95 backdrop-blur-md px-4 py-4 space-y-4 animate-fadeIn">
+        <div className="mobile-menu-drawer md:hidden border-t border-gray-800 bg-gray-950/95 backdrop-blur-md px-4 py-4 space-y-4 animate-fadeIn">
           {/* Mobile Search Input */}
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />

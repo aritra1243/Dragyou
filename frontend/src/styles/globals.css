@@ -198,6 +198,37 @@ html.light .repo-empty-box {
   color: #0f172a !important;
 }
 
+/* Mobile Menu Dropdown Light Mode Overrides */
+html.light .mobile-menu-drawer {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .mobile-menu-drawer input {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light .mobile-menu-drawer input::placeholder {
+  color: #64748b !important;
+}
+
+html.light .mobile-menu-drawer a,
+html.light .mobile-menu-drawer span {
+  color: #0f172a !important;
+}
+
+html.light .mobile-menu-drawer a:hover {
+  background-color: #f1f5f9 !important;
+  color: #2563eb !important;
+}
+
+html.light .mobile-menu-drawer .border-t {
+  border-color: #cbd5e1 !important;
+}
+
 /* Force Terminal Windows & Code Exec Blocks to stay crisp dark in both themes */
 .terminal-window,
 .terminal-window * {
