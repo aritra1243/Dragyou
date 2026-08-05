@@ -51,7 +51,7 @@ Uploading pack (0 KB)...
   };
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-950 overflow-hidden shadow-2xl">
+    <div className="terminal-window rounded-2xl border border-gray-800 bg-gray-950 overflow-hidden shadow-2xl">
       {/* Terminal window header */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-800 select-none">
         <div className="flex items-center gap-2">

@@ -33,10 +33,10 @@ body {
 }
 
 html.light body {
-  background: #f1f5f9;
+  background: #f8fafc;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.06) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.05) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.03) 0px, transparent 50%);
 }
 
 /* Custom scrollbars */
@@ -83,8 +83,9 @@ html.light .glass-panel {
 }
 
 html.light .glass-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   border-color: rgba(226, 232, 240, 0.9);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
 .glass-card:hover {
@@ -99,7 +100,8 @@ html.light .glass-card:hover {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
 }
 
-/* Light mode text color adjustments */
+/* Light mode text color overrides */
+html.light .text-white,
 html.light .text-gray-100,
 html.light .text-gray-200,
 html.light .text-gray-300 {
@@ -113,12 +115,77 @@ html.light .text-gray-500 {
 
 html.light .bg-gray-900,
 html.light .bg-gray-950 {
-  background-color: #f8fafc;
+  background-color: #ffffff;
 }
 
 html.light .border-gray-800,
 html.light .border-gray-700 {
-  border-color: #cbd5e1;
+  border-color: #e2e8f0;
+}
+
+/* Force Terminal Windows & Code Exec Blocks to stay crisp dark in both themes */
+.terminal-window,
+.terminal-window * {
+  color-scheme: dark;
+}
+
+html.light .terminal-window {
+  background-color: #0d1117 !important;
+  border-color: #30363d !important;
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.25) !important;
+}
+
+html.light .terminal-window .bg-gray-900,
+html.light .terminal-window .bg-gray-950,
+html.light .terminal-window .bg-gray-900\/50 {
+  background-color: #161b22 !important;
+}
+
+html.light .terminal-window .border-gray-800,
+html.light .terminal-window .border-gray-700,
+html.light .terminal-window .border-gray-800\/80 {
+  border-color: #30363d !important;
+}
+
+html.light .terminal-window .text-gray-100,
+html.light .terminal-window .text-gray-200,
+html.light .terminal-window .text-gray-300,
+html.light .terminal-window .text-white {
+  color: #f0f6fc !important;
+}
+
+html.light .terminal-window .text-gray-400,
+html.light .terminal-window .text-gray-500 {
+  color: #8b949e !important;
+}
+
+/* Navbar Search Bar Light Mode overrides */
+html.light header input {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light header input::placeholder {
+  color: #64748b !important;
+}
+
+html.light header kbd {
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+/* Primary buttons should keep white text in Light mode */
+html.light .bg-blue-600,
+html.light .bg-purple-600,
+html.light .bg-emerald-600,
+html.light .bg-amber-600,
+html.light .bg-blue-600 *,
+html.light .bg-purple-600 *,
+html.light .bg-emerald-600 *,
+html.light .bg-amber-600 * {
+  color: #ffffff !important;
 }
 
 /* Code typography */
