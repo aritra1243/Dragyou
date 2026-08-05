@@ -391,7 +391,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
   });
 
   return (
-    <div className="flex gap-6 min-h-[calc(100vh-120px)]">
+    <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-120px)]">
       <Sidebar owner={owner} repo={repo} />
 
       <div className="flex-1 min-w-0 space-y-4">

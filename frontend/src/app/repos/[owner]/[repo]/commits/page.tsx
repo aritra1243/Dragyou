@@ -23,7 +23,7 @@ export default function CommitsPage({ params }: Props) {
   }, [owner, repo]);
 
   return (
-    <div className="flex gap-6 min-h-[calc(100vh-140px)]">
+    <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-140px)]">
       <Sidebar owner={owner} repo={repo} />
 
       <div className="flex-1 space-y-6">
