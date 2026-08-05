@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -257,8 +258,8 @@ func (h *Handler) GetTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ref  := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
+	ref  := cleanParam(chi.URLParam(r, "ref"))
+	path := cleanParam(chi.URLParam(r, "*"))
 
 	tree, err := h.engine.TreeAt(repo.StoragePath, ref, path)
 	if err != nil {
@@ -280,8 +281,8 @@ func (h *Handler) GetBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ref      := chi.URLParam(r, "ref")
-	filePath := chi.URLParam(r, "*")
+	ref      := cleanParam(chi.URLParam(r, "ref"))
+	filePath := cleanParam(chi.URLParam(r, "*"))
 
 	content, err := h.engine.BlobAt(repo.StoragePath, ref, filePath)
 	if err != nil {
@@ -428,9 +429,16 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
+func cleanParam(s string) string {
+	if u, err := url.PathUnescape(s); err == nil {
+		return u
+	}
+	return s
+}
+
 func (h *Handler) loadRepo(w http.ResponseWriter, r *http.Request) (*models.Repository, bool) {
-	owner := chi.URLParam(r, "owner")
-	name  := chi.URLParam(r, "repo")
+	owner := cleanParam(chi.URLParam(r, "owner"))
+	name  := cleanParam(chi.URLParam(r, "repo"))
 	fullName := owner + "/" + name
 
 	var repo models.Repository

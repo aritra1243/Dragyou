@@ -22,7 +22,7 @@ type updateProfileRequest struct {
 
 // GET /api/v1/users/:username
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "username")
+	username := cleanParam(chi.URLParam(r, "username"))
 
 	var user models.User
 	if err := h.db.Where("username = ?", username).First(&user).Error; err != nil {
@@ -40,7 +40,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/v1/users/:username/repos
 func (h *Handler) GetUserRepos(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "username")
+	username := cleanParam(chi.URLParam(r, "username"))
 
 	var user models.User
 	if err := h.db.Where("username = ?", username).First(&user).Error; err != nil {
