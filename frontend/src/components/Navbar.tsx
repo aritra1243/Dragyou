@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Plus, User as UserIcon, LogOut, Code, BookOpen, Menu, X } from 'lucide-react';
+import { Search, Plus, User as UserIcon, LogOut, Code, BookOpen, Menu, X, Sun, Moon } from 'lucide-react';
 import { User } from '@/lib/api';
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
     const loadUser = () => {
@@ -19,8 +20,29 @@ export default function Navbar() {
     };
     loadUser();
     window.addEventListener('storage', loadUser);
+
+    // Initialize Theme
+    const savedTheme = (localStorage.getItem('dragyou_theme') as 'dark' | 'light') || 'dark';
+    setTheme(savedTheme);
+    if (savedTheme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+
     return () => window.removeEventListener('storage', loadUser);
   }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('dragyou_theme', nextTheme);
+    if (nextTheme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('dragyou_token');
@@ -96,6 +118,20 @@ export default function Navbar() {
 
         {/* Desktop Controls */}
         <div className="hidden sm:flex items-center gap-3">
+          {/* Theme Switcher Button */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-xl border border-gray-800 bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-amber-400 transition-all cursor-pointer"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            aria-label="Toggle Theme"
+          >
+            {theme === 'dark' ? (
+              <Sun size={17} className="text-amber-400 animate-fadeIn" />
+            ) : (
+              <Moon size={17} className="text-indigo-600 animate-fadeIn" />
+            )}
+          </button>
+
           <Link
             href="/repos?new=true"
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition-all shadow-md shadow-blue-600/20 active:scale-95 shrink-0"
@@ -144,8 +180,21 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Toggle Button */}
+        {/* Mobile Controls */}
         <div className="flex items-center gap-2 sm:hidden">
+          {/* Mobile Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-xl border border-gray-800 bg-gray-900 text-gray-300"
+            title="Toggle Theme"
+          >
+            {theme === 'dark' ? (
+              <Sun size={16} className="text-amber-400" />
+            ) : (
+              <Moon size={16} className="text-indigo-600" />
+            )}
+          </button>
+
           <Link
             href="/repos?new=true"
             className="p-2 rounded-xl bg-blue-600 text-white text-xs"
