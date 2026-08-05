@@ -148,6 +148,7 @@ export const api = {
   updateProfile: (data: any) => fetcher<{ message: string; user: User }>('/auth/me', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Users
+  searchUsers: (query: string) => fetcher<{ users: User[] }>(`/users/search?q=${encodeURIComponent(query)}`),
   getUser: (username: string) => fetcher<User>(`/users/${encodeURIComponent(username)}`),
   getUserRepos: (username: string) => fetcher<{ repositories: Repository[] }>(`/users/${encodeURIComponent(username)}/repos`),
 

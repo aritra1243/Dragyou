@@ -74,6 +74,7 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 		// Users
 		r.Route("/users", func(r chi.Router) {
 			r.With(mw.Auth(cfg.JWTSecret)).Put("/profile", h.UpdateProfile)
+			r.Get("/search", h.SearchUsers)
 			r.Get("/{username}", h.GetUser)
 			r.Get("/{username}/repos", h.GetUserRepos)
 		})

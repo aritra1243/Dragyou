@@ -22,6 +22,10 @@ export default function SettingsPage({ params }: Props) {
   const [inviting, setInviting] = useState(false);
   const [collabMsg, setCollabMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // User search suggestions state
+  const [userSuggestions, setUserSuggestions] = useState<Array<{ id: number; username: string; display_name?: string; avatar_url?: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const loadCollaborators = () => {
     setLoadingCollabs(true);
     api.listCollaborators(owner, repo)
@@ -34,12 +38,34 @@ export default function SettingsPage({ params }: Props) {
     loadCollaborators();
   }, [owner, repo]);
 
+  // Live user search autocomplete effect
+  useEffect(() => {
+    const q = inviteUsername.trim();
+    if (!q) {
+      setUserSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      api.searchUsers(q)
+        .then((data) => {
+          setUserSuggestions(data.users || []);
+          setShowSuggestions(true);
+        })
+        .catch(() => setUserSuggestions([]));
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [inviteUsername]);
+
   const handleAddCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteUsername.trim()) return;
 
     setInviting(true);
     setCollabMsg(null);
+    setShowSuggestions(false);
 
     try {
       await api.addCollaborator(owner, repo, inviteUsername.trim(), inviteRole);
@@ -126,14 +152,47 @@ export default function SettingsPage({ params }: Props) {
               )}
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="text"
-                  required
-                  placeholder="Enter username"
-                  value={inviteUsername}
-                  onChange={(e) => setInviteUsername(e.target.value)}
-                  className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-200 focus:outline-none focus:border-blue-500"
-                />
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Search or enter username..."
+                    value={inviteUsername}
+                    onChange={(e) => setInviteUsername(e.target.value)}
+                    onFocus={() => inviteUsername.trim() && setShowSuggestions(true)}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-200 focus:outline-none focus:border-blue-500"
+                  />
+
+                  {/* Autocomplete Suggestions Dropdown */}
+                  {showSuggestions && userSuggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl z-50 overflow-hidden divide-y divide-gray-800/60 max-h-60 overflow-y-auto">
+                      {userSuggestions.map((u) => (
+                        <div
+                          key={u.id}
+                          onClick={() => {
+                            setInviteUsername(u.username);
+                            setShowSuggestions(false);
+                          }}
+                          className="p-2.5 flex items-center gap-3 hover:bg-blue-600/20 cursor-pointer transition-colors"
+                        >
+                          {u.avatar_url ? (
+                            <img src={u.avatar_url} alt={u.username} className="w-6 h-6 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 font-bold text-[10px] flex items-center justify-center border border-blue-500/30">
+                              {u.username.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 font-mono text-xs text-gray-200">
+                            <span className="font-bold text-gray-100">{u.username}</span>
+                            {u.display_name && (
+                              <span className="text-gray-400 text-[11px] ml-2 font-sans">({u.display_name})</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 <select
                   value={inviteRole}

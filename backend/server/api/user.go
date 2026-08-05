@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/dragyou/server/middleware"
@@ -18,6 +19,32 @@ type updateProfileRequest struct {
 	Bio         string `json:"bio"`
 	AvatarURL   string `json:"avatar_url"`
 	NewPassword string `json:"new_password,omitempty"`
+}
+
+// GET /api/v1/users/search?q=query
+func (h *Handler) SearchUsers(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if q == "" {
+		respondJSON(w, http.StatusOK, map[string]any{"users": []models.PublicProfile{}})
+		return
+	}
+
+	likePattern := "%" + q + "%"
+	var users []models.User
+	if err := h.db.Where("username LIKE ? OR display_name LIKE ? OR email LIKE ?", likePattern, likePattern, likePattern).
+		Limit(10).Find(&users).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Failed to search users")
+		return
+	}
+
+	publicUsers := make([]models.PublicProfile, len(users))
+	for i, u := range users {
+		publicUsers[i] = u.ToPublic()
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"users": publicUsers,
+	})
 }
 
 // GET /api/v1/users/:username
