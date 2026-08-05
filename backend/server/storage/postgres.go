@@ -21,13 +21,19 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 	}
 
 	gormCfg := &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
+		Logger:      logger.Default.LogMode(logLevel),
+		PrepareStmt: false,
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
 	}
 
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), gormCfg)
+	pgConfig := postgres.Config{
+		DSN:                  cfg.DSN(),
+		PreferSimpleProtocol: true, // Disables implicit prepared statements for PgBouncer / Connection Poolers
+	}
+
+	db, err := gorm.Open(postgres.New(pgConfig), gormCfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect to postgres: %w", err)
 	}
