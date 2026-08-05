@@ -88,8 +88,9 @@ func (h *Handler) GetUserRepos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]any{
-		"user":  user.ToPublic(),
-		"repos": items,
+		"user":         user.ToPublic(),
+		"repositories": items,
+		"repos":        items,
 	})
 }
 

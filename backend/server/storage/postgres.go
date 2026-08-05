@@ -75,6 +75,7 @@ func AutoMigrate(db *gorm.DB) error {
 		// Repository
 		&models.Repository{},
 		&models.RepositoryMember{},
+		&models.Star{},
 
 		// Collaboration
 		&models.PullRequest{},

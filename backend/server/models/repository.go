@@ -37,6 +37,13 @@ type Repository struct {
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// Star tracks repository starring per user.
+type Star struct {
+	RepositoryID uint      `gorm:"primaryKey;autoIncrement:false;index" json:"repository_id"`
+	UserID       uint      `gorm:"primaryKey;autoIncrement:false;index" json:"user_id"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 // RepositoryMember tracks per-user access to a repo.
 type RepoRole string
 

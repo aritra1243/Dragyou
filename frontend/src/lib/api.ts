@@ -150,13 +150,18 @@ export const api = {
   // Users
   searchUsers: (query: string) => fetcher<{ users: User[] }>(`/users/search?q=${encodeURIComponent(query)}`),
   getUser: (username: string) => fetcher<User>(`/users/${encodeURIComponent(username)}`),
-  getUserRepos: (username: string) => fetcher<{ repositories: Repository[] }>(`/users/${encodeURIComponent(username)}/repos`),
+  getUserRepos: (username: string) => fetcher<{ repositories?: Repository[]; repos?: Repository[] }>(`/users/${encodeURIComponent(username)}/repos`),
 
   // Repos
   listRepos: () => fetcher<{ items: Repository[]; total_count: number }>('/repos'),
   getRepo: (owner: string, repo: string) => fetcher<Repository>(repoPath(owner, repo)),
   createRepo: (data: any) => fetcher<Repository>('/repos', { method: 'POST', body: JSON.stringify(data) }),
   deleteRepo: (owner: string, repo: string) => fetcher<{ message: string }>(repoPath(owner, repo), { method: 'DELETE' }),
+
+  // Star
+  getStarStatus: (owner: string, repo: string) => fetcher<{ starred: boolean; star_count: number }>(`${repoPath(owner, repo)}/star`),
+  starRepo: (owner: string, repo: string) => fetcher<{ message: string; starred: boolean; star_count: number }>(`${repoPath(owner, repo)}/star`, { method: 'POST' }),
+  unstarRepo: (owner: string, repo: string) => fetcher<{ message: string; starred: boolean; star_count: number }>(`${repoPath(owner, repo)}/star`, { method: 'DELETE' }),
 
   // VCS
   getCommits: (owner: string, repo: string, max = 30) => fetcher<{ commits: Commit[]; repo: string }>(`${repoPath(owner, repo)}/commits?max=${max}`),

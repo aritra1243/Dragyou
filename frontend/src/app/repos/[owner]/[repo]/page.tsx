@@ -293,10 +293,44 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
   const [error, setError]             = useState('');
   const [currentUser, setCurrentUser] = useState<{ username: string } | null>(null);
 
+  // Star state
+  const [starred, setStarred]   = useState(false);
+  const [starCount, setStarCount] = useState(0);
+  const [starring, setStarring]   = useState(false);
+
   useEffect(() => {
     const u = localStorage.getItem('dragyou_user');
     if (u) try { setCurrentUser(JSON.parse(u)); } catch {}
   }, []);
+
+  // Load star status
+  useEffect(() => {
+    api.getStarStatus(owner, repo)
+      .then((data) => {
+        setStarred(data.starred);
+        setStarCount(data.star_count);
+      })
+      .catch(() => {});
+  }, [owner, repo]);
+
+  const handleToggleStar = async () => {
+    setStarring(true);
+    try {
+      if (starred) {
+        const res = await api.unstarRepo(owner, repo);
+        setStarred(false);
+        setStarCount(res.star_count);
+      } else {
+        const res = await api.starRepo(owner, repo);
+        setStarred(true);
+        setStarCount(res.star_count);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Please log in to star this repository');
+    } finally {
+      setStarring(false);
+    }
+  };
 
   // Load repo metadata + branches + commits
   useEffect(() => {
@@ -307,6 +341,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
       api.getCommits(owner, repo, 20),
     ]).then(([repoData, branchData, commitData]) => {
       setRepository(repoData);
+      setStarCount(repoData.star_count ?? 0);
       setSelectedBranch(repoData.default_branch || 'main');
       setBranches(branchData.branches || []);
       setCommits(commitData.commits || []);
@@ -387,7 +422,23 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
                 <p className="text-gray-400 text-xs">{repository.description}</p>
               )}
               <div className="flex items-center gap-4 pt-1 text-xs text-gray-500 font-mono">
-                <span className="flex items-center gap-1"><Star size={11} className="text-yellow-500" /> {repository?.star_count ?? 0} stars</span>
+                <button
+                  onClick={handleToggleStar}
+                  disabled={starring}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                    starred
+                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-sm shadow-amber-500/10'
+                      : 'bg-gray-900/80 border-gray-800 text-gray-400 hover:text-amber-300 hover:border-amber-500/30'
+                  }`}
+                  title={starred ? 'Click to unstar' : 'Click to star repository'}
+                >
+                  <Star size={12} className={starred ? "text-amber-400 fill-amber-400" : "text-gray-400"} />
+                  <span>{starred ? 'Starred' : 'Star'}</span>
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded bg-gray-800/90 text-[11px] font-bold text-gray-300">
+                    {starCount}
+                  </span>
+                </button>
+
                 <span className="flex items-center gap-1"><GitFork size={11} className="text-blue-400" /> {repository?.fork_count ?? 0} forks</span>
                 <span className="flex items-center gap-1"><GitCommit size={11} className="text-purple-400" /> {commits.length} commits</span>
               </div>

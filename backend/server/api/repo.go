@@ -780,5 +780,90 @@ func (h *Handler) toRepoResponse(r *http.Request, repo *models.Repository) repoR
 	}
 }
 
+// ── Star Handlers ─────────────────────────────────────────────────────────
+
+// POST /api/v1/repos/{owner}/{repo}/star
+func (h *Handler) StarRepo(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	uid := middleware.GetUserID(r)
+	if uid == 0 {
+		respondError(w, http.StatusUnauthorized, "unauthorized", "Authentication required to star a repository")
+		return
+	}
+
+	var existing models.Star
+	err := h.db.Where("repository_id = ? AND user_id = ?", repo.ID, uid).First(&existing).Error
+	if err != nil {
+		star := models.Star{
+			RepositoryID: repo.ID,
+			UserID:       uid,
+		}
+		h.db.Create(&star)
+
+		h.db.Model(repo).UpdateColumn("star_count", gorm.Expr("star_count + 1"))
+		repo.StarCount++
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"message":    "Repository starred",
+		"starred":    true,
+		"star_count": repo.StarCount,
+	})
+}
+
+// DELETE /api/v1/repos/{owner}/{repo}/star
+func (h *Handler) UnstarRepo(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	uid := middleware.GetUserID(r)
+	if uid == 0 {
+		respondError(w, http.StatusUnauthorized, "unauthorized", "Authentication required")
+		return
+	}
+
+	result := h.db.Where("repository_id = ? AND user_id = ?", repo.ID, uid).Delete(&models.Star{})
+	if result.RowsAffected > 0 {
+		if repo.StarCount > 0 {
+			h.db.Model(repo).UpdateColumn("star_count", gorm.Expr("GREATEST(star_count - 1, 0)"))
+			repo.StarCount--
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"message":    "Repository unstarred",
+		"starred":    false,
+		"star_count": repo.StarCount,
+	})
+}
+
+// GET /api/v1/repos/{owner}/{repo}/star
+func (h *Handler) GetStarStatus(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	uid := middleware.GetUserID(r)
+	starred := false
+	if uid > 0 {
+		var existing models.Star
+		if err := h.db.Where("repository_id = ? AND user_id = ?", repo.ID, uid).First(&existing).Error; err == nil {
+			starred = true
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"starred":    starred,
+		"star_count": repo.StarCount,
+	})
+}
+
 // ── Date formatting helper ────────────────────────────────────────────────
 var _ = time.Now // suppress unused import if time is only used in models

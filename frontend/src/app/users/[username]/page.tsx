@@ -28,7 +28,7 @@ export default function UserProfilePage({ params }: Props) {
     ])
       .then(([userData, repoData]) => {
         setProfile(userData);
-        setRepos(repoData.repositories || []);
+        setRepos(repoData.repositories || repoData.repos || []);
       })
       .catch((err: any) => {
         setError(err.message || `User '${decodedUsername}' not found`);
