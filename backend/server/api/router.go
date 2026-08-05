@@ -90,9 +90,17 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 				// VCS data
 				r.Get("/commits", h.GetCommits)
 				r.Get("/branches", h.GetBranches)
+				r.With(mw.Auth(cfg.JWTSecret)).Post("/branches", h.CreateBranch)
 				r.Get("/tree/{ref}", h.GetTree)
 				r.Get("/tree/{ref}/*", h.GetTree)
 				r.Get("/blob/{ref}/*", h.GetBlob)
+
+				// Collaborators
+				r.Route("/collaborators", func(r chi.Router) {
+					r.Get("/", h.ListCollaborators)
+					r.With(mw.Auth(cfg.JWTSecret)).Post("/", h.AddCollaborator)
+					r.With(mw.Auth(cfg.JWTSecret)).Delete("/{username}", h.RemoveCollaborator)
+				})
 
 				// Phase 4 — Remote protocol
 				r.Route("/push", func(r chi.Router) {

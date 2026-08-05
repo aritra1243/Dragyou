@@ -251,6 +251,203 @@ func (h *Handler) GetBranches(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type createBranchRequest struct {
+	Name   string `json:"name"`
+	Target string `json:"target"`
+}
+
+// POST /api/v1/repos/{owner}/{repo}/branches
+func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	uid := middleware.GetUserID(r)
+	if !h.canWrite(repo, uid) {
+		respondError(w, http.StatusForbidden, "forbidden", "Write access required")
+		return
+	}
+
+	var req createBranchRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_json", "Invalid request body")
+		return
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		respondError(w, http.StatusUnprocessableEntity, "invalid_name", "Branch name cannot be empty")
+		return
+	}
+
+	if req.Target == "" {
+		req.Target = repo.DefaultBranch
+	}
+	if req.Target == "" {
+		req.Target = "main"
+	}
+
+	if err := h.engine.CreateBranch(repo.StoragePath, req.Name, req.Target); err != nil {
+		respondError(w, http.StatusBadRequest, "branch_error", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, map[string]any{
+		"message": "Branch created successfully",
+		"branch":  req.Name,
+		"target":  req.Target,
+	})
+}
+
+type addCollaboratorRequest struct {
+	Username string          `json:"username"`
+	Role     models.RepoRole `json:"role"`
+}
+
+type collaboratorResponse struct {
+	ID          uint            `json:"id"`
+	UserID      uint            `json:"user_id"`
+	Username    string          `json:"username"`
+	Email       string          `json:"email"`
+	DisplayName string          `json:"display_name"`
+	AvatarURL   string          `json:"avatar_url"`
+	Role        models.RepoRole `json:"role"`
+}
+
+// GET /api/v1/repos/{owner}/{repo}/collaborators
+func (h *Handler) ListCollaborators(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	var members []models.RepositoryMember
+	if err := h.db.Where("repository_id = ?", repo.ID).Find(&members).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Could not fetch collaborators")
+		return
+	}
+
+	userIDs := make([]uint, len(members))
+	for i, m := range members {
+		userIDs[i] = m.UserID
+	}
+
+	var users []models.User
+	if len(userIDs) > 0 {
+		h.db.Where("id IN ?", userIDs).Find(&users)
+	}
+
+	userMap := make(map[uint]models.User)
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+
+	collabs := make([]collaboratorResponse, 0, len(members))
+	for _, m := range members {
+		u := userMap[m.UserID]
+		collabs = append(collabs, collaboratorResponse{
+			ID:          m.ID,
+			UserID:      m.UserID,
+			Username:    u.Username,
+			Email:       u.Email,
+			DisplayName: u.DisplayName,
+			AvatarURL:   u.AvatarURL,
+			Role:        m.Role,
+		})
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"collaborators": collabs,
+	})
+}
+
+// POST /api/v1/repos/{owner}/{repo}/collaborators
+func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	uid := middleware.GetUserID(r)
+	if repo.OwnerID != uid {
+		respondError(w, http.StatusForbidden, "forbidden", "Only repository owner can manage collaborators")
+		return
+	}
+
+	var req addCollaboratorRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_json", "Invalid request body")
+		return
+	}
+
+	req.Username = strings.TrimSpace(req.Username)
+	if req.Username == "" {
+		respondError(w, http.StatusUnprocessableEntity, "invalid_username", "Username is required")
+		return
+	}
+
+	if req.Role == "" {
+		req.Role = models.RoleWrite
+	}
+
+	var targetUser models.User
+	if err := h.db.Where("username = ?", req.Username).First(&targetUser).Error; err != nil {
+		respondError(w, http.StatusNotFound, "user_not_found", "User "+req.Username+" not found")
+		return
+	}
+
+	if targetUser.ID == repo.OwnerID {
+		respondError(w, http.StatusBadRequest, "owner_role", "Owner already has full access")
+		return
+	}
+
+	var member models.RepositoryMember
+	err := h.db.Where("repository_id = ? AND user_id = ?", repo.ID, targetUser.ID).First(&member).Error
+	if err == nil {
+		member.Role = req.Role
+		h.db.Save(&member)
+	} else {
+		member = models.RepositoryMember{
+			RepositoryID: repo.ID,
+			UserID:       targetUser.ID,
+			Role:         req.Role,
+		}
+		h.db.Create(&member)
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"message": "Collaborator updated successfully",
+		"username": targetUser.Username,
+		"role":     req.Role,
+	})
+}
+
+// DELETE /api/v1/repos/{owner}/{repo}/collaborators/{username}
+func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	uid := middleware.GetUserID(r)
+	if repo.OwnerID != uid {
+		respondError(w, http.StatusForbidden, "forbidden", "Only repository owner can manage collaborators")
+		return
+	}
+
+	username := cleanParam(chi.URLParam(r, "username"))
+	var targetUser models.User
+	if err := h.db.Where("username = ?", username).First(&targetUser).Error; err != nil {
+		respondError(w, http.StatusNotFound, "user_not_found", "User not found")
+		return
+	}
+
+	h.db.Where("repository_id = ? AND user_id = ?", repo.ID, targetUser.ID).Delete(&models.RepositoryMember{})
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Collaborator removed"})
+}
+
 // GET /api/v1/repos/{owner}/{repo}/tree/{ref}/*path
 func (h *Handler) GetTree(w http.ResponseWriter, r *http.Request) {
 	repo, ok := h.loadRepo(w, r)

@@ -130,6 +130,16 @@ async function fetcher<T>(endpoint: string, options: RequestInit = {}): Promise<
   return res.json();
 }
 
+export interface Collaborator {
+  id: number;
+  user_id: number;
+  username: string;
+  email: string;
+  display_name: string;
+  avatar_url: string;
+  role: 'owner' | 'admin' | 'maintainer' | 'write' | 'read';
+}
+
 export const api = {
   // Auth
   register: (data: any) => fetcher<{ access_token: string; user: User }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
@@ -137,15 +147,24 @@ export const api = {
   getMe: () => fetcher<User>('/auth/me'),
   updateProfile: (data: any) => fetcher<{ message: string; user: User }>('/auth/me', { method: 'PUT', body: JSON.stringify(data) }),
 
-  // Repositories
+  // Users
+  getUser: (username: string) => fetcher<User>(`/users/${encodeURIComponent(username)}`),
+  getUserRepos: (username: string) => fetcher<{ repositories: Repository[] }>(`/users/${encodeURIComponent(username)}/repos`),
+
+  // Repos
   listRepos: () => fetcher<{ items: Repository[]; total_count: number }>('/repos'),
   getRepo: (owner: string, repo: string) => fetcher<Repository>(repoPath(owner, repo)),
   createRepo: (data: any) => fetcher<Repository>('/repos', { method: 'POST', body: JSON.stringify(data) }),
   deleteRepo: (owner: string, repo: string) => fetcher<{ message: string }>(repoPath(owner, repo), { method: 'DELETE' }),
 
-  // VCS details
-  getCommits: (owner: string, repo: string, max = 30) => fetcher<{ commits: Commit[] }>(`${repoPath(owner, repo)}/commits?max=${max}`),
+  // VCS
+  getCommits: (owner: string, repo: string, max = 30) => fetcher<{ commits: Commit[]; repo: string }>(`${repoPath(owner, repo)}/commits?max=${max}`),
   getBranches: (owner: string, repo: string) => fetcher<{ branches: Branch[]; default_branch: string }>(`${repoPath(owner, repo)}/branches`),
+  createBranch: (owner: string, repo: string, name: string, target?: string) =>
+    fetcher<{ message: string; branch: string; target: string }>(`${repoPath(owner, repo)}/branches`, {
+      method: 'POST',
+      body: JSON.stringify({ name, target }),
+    }),
   getTree: (owner: string, repo: string, ref = 'main', path = '') => {
     const cleanPath = path ? `/${path}` : '';
     return fetcher<{ items: TreeItem[] }>(`${repoPath(owner, repo)}/tree/${encodeURIComponent(ref)}${cleanPath}`);
@@ -159,6 +178,19 @@ export const api = {
     if (!res.ok) throw new Error('Failed to load blob content');
     return res.text();
   },
+
+  // Collaborators & Roles
+  listCollaborators: (owner: string, repo: string) =>
+    fetcher<{ collaborators: Collaborator[] }>(`${repoPath(owner, repo)}/collaborators`),
+  addCollaborator: (owner: string, repo: string, username: string, role: string) =>
+    fetcher<{ message: string; username: string; role: string }>(`${repoPath(owner, repo)}/collaborators`, {
+      method: 'POST',
+      body: JSON.stringify({ username, role }),
+    }),
+  removeCollaborator: (owner: string, repo: string, username: string) =>
+    fetcher<{ message: string }>(`${repoPath(owner, repo)}/collaborators/${encodeURIComponent(username)}`, {
+      method: 'DELETE',
+    }),
 
   // PRs & Issues
   listPullRequests: (owner: string, repo: string) => fetcher<{ pull_requests: PullRequest[] }>(`${repoPath(owner, repo)}/pulls`),
@@ -196,4 +228,3 @@ export const api = {
     return res.json();
   },
 };
-

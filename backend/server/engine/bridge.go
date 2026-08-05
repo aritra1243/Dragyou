@@ -181,6 +181,35 @@ func (b *Bridge) Branches(repoPath string) ([]BranchEntry, error) {
 	return branches, nil
 }
 
+// CreateBranch creates a new branch pointing to the commit of targetRef.
+func (b *Bridge) CreateBranch(repoPath, branchName, targetRef string) error {
+	novaDir := filepath.Join(repoPath, ".nova")
+	commitHash, err := resolveRef(novaDir, targetRef)
+	if err != nil || commitHash == "" {
+		return fmt.Errorf("target branch or commit %q not found", targetRef)
+	}
+
+	branchName = strings.TrimSpace(branchName)
+	if branchName == "" || strings.ContainsAny(branchName, " \t\n\r\\:*?\"<>|") {
+		return fmt.Errorf("invalid branch name: %q", branchName)
+	}
+
+	refPath := filepath.Join(novaDir, "refs", "heads", branchName)
+	if _, err := os.Stat(refPath); err == nil {
+		return fmt.Errorf("branch %q already exists", branchName)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(refPath), 0o755); err != nil {
+		return fmt.Errorf("mkdir refs: %w", err)
+	}
+
+	if err := os.WriteFile(refPath, []byte(commitHash+"\n"), 0o644); err != nil {
+		return fmt.Errorf("write ref: %w", err)
+	}
+
+	return nil
+}
+
 
 // TreeAt returns the file tree at the given ref/path by reading .nova objects directly.
 func (b *Bridge) TreeAt(repoPath, ref, path string) ([]TreeEntry, error) {
