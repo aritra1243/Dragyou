@@ -30,6 +30,10 @@ type Claims struct {
 func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodOptions {
+				next.ServeHTTP(w, r)
+				return
+			}
 			token, err := extractAndValidateJWT(r, jwtSecret)
 			if err != nil {
 				http.Error(w, `{"error":"unauthorized","detail":"`+err.Error()+`"}`, http.StatusUnauthorized)
