@@ -118,9 +118,84 @@ html.light .bg-gray-950 {
   background-color: #ffffff;
 }
 
+html.light .bg-gray-900\/60,
+html.light .bg-gray-900\/80,
+html.light .bg-gray-950\/60,
+html.light .bg-gray-950\/80 {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
 html.light .border-gray-800,
 html.light .border-gray-700 {
-  border-color: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+/* Light mode input, select, textarea overrides */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Light Mode Repository Hero Banner Override */
+html.light .repo-hero-banner {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .repo-hero-banner .text-white,
+html.light .repo-hero-banner .text-gray-100 {
+  color: #0f172a !important;
+}
+
+html.light .repo-hero-banner .text-gray-400,
+html.light .repo-hero-banner .text-gray-500 {
+  color: #475569 !important;
+}
+
+/* Light Mode Repository Filter Pills & Search */
+html.light .repo-filter-pills {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .repo-filter-pills button:not(.bg-blue-600) {
+  color: #475569 !important;
+}
+
+html.light .repo-filter-pills button:not(.bg-blue-600):hover {
+  color: #0f172a !important;
+}
+
+/* Light Mode File Tree & Empty Box Override */
+html.light .repo-file-tree {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .repo-file-table th {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html.light .repo-file-table td {
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light .repo-empty-box {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
 }
 
 /* Force Terminal Windows & Code Exec Blocks to stay crisp dark in both themes */

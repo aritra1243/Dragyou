@@ -188,7 +188,7 @@ function ReposContent() {
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1 bg-gray-950/80 border border-gray-800 p-1 rounded-xl w-fit text-xs font-mono">
+        <div className="repo-filter-pills flex items-center gap-1 bg-gray-950/80 border border-gray-800 p-1 rounded-xl w-fit text-xs font-mono">
           {(['all', 'public', 'private'] as const).map((tab) => (
             <button
               key={tab}

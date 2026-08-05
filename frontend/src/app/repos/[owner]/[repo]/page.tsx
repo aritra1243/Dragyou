@@ -397,7 +397,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
       <div className="flex-1 min-w-0 space-y-4">
 
         {/* ── Hero header ─────────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 via-gray-900 to-blue-950/20 p-5">
+        <div className="repo-hero-banner relative overflow-hidden rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900 via-gray-900 to-blue-950/20 p-5">
           {/* Glow */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-10 -right-10 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl" />
