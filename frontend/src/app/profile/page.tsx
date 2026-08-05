@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import {
   User as UserIcon, Mail, Sparkles, Lock, Check, Shield, Save,
-  Camera, Terminal, Key, UserCheck, AlertCircle, RefreshCw, Upload, Image as ImageIcon, Trash2
+  Camera, Upload, Image as ImageIcon, Trash2, RefreshCw, AlertCircle, Key
 } from 'lucide-react';
 import { api, User } from '@/lib/api';
 
@@ -20,53 +20,58 @@ export default function ProfilePage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Form Fields
+  // Section 1: Public Profile Fields
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [submittingProfile, setSubmittingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Section 2: Account Email Fields
+  const [email, setEmail] = useState('');
+  const [submittingEmail, setSubmittingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Section 3: Password Security Fields
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  // Status State
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [submittingPassword, setSubmittingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const syncUser = (u: User) => {
+    setCurrentUser(u);
+    setDisplayName(u.display_name || '');
+    setEmail(u.email || '');
+    setBio(u.bio || '');
+    setAvatarUrl(u.avatar_url || '');
+    localStorage.setItem('dragyou_user', JSON.stringify(u));
+  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('dragyou_user');
     if (savedUser) {
       try {
         const u = JSON.parse(savedUser);
-        setCurrentUser(u);
-        setDisplayName(u.display_name || '');
-        setEmail(u.email || '');
-        setBio(u.bio || '');
-        setAvatarUrl(u.avatar_url || '');
+        syncUser(u);
       } catch (e) {}
     }
 
     // Fetch fresh user profile from API
     api.getMe()
-      .then((u) => {
-        setCurrentUser(u);
-        setDisplayName(u.display_name || '');
-        setEmail(u.email || '');
-        setBio(u.bio || '');
-        setAvatarUrl(u.avatar_url || '');
-        localStorage.setItem('dragyou_user', JSON.stringify(u));
-      })
+      .then((u) => syncUser(u))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
+  // Handle Photo File Upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'Image file size must be less than 5MB.' });
+      setProfileMsg({ type: 'error', text: 'Image file size must be less than 5MB.' });
       return;
     }
 
@@ -97,7 +102,7 @@ export default function ProfilePage() {
             ctx.drawImage(img, 0, 0, width, height);
             const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
             setAvatarUrl(resizedDataUrl);
-            setMessage({ type: 'success', text: 'Photo ready! Click "Save Profile Changes" below to save.' });
+            setProfileMsg({ type: 'success', text: 'Photo uploaded! Click "Update Public Profile" below to save.' });
           } else {
             setAvatarUrl(reader.result as string);
           }
@@ -108,48 +113,82 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Submit Section 1: Public Profile
+  const handleUpdatePublicProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
+    setProfileMsg(null);
+    setSubmittingProfile(true);
 
-    if (newPassword && newPassword !== confirmPassword) {
-      setMessage({ type: 'error', text: 'New password and confirmation do not match.' });
+    try {
+      const res = await api.updateProfile({
+        display_name: displayName,
+        bio,
+        avatar_url: avatarUrl,
+      });
+
+      const updatedUser = { ...currentUser, ...res.user, avatar_url: avatarUrl };
+      syncUser(updatedUser);
+      setProfileMsg({ type: 'success', text: '✓ Public profile updated successfully!' });
+
+      setTimeout(() => window.dispatchEvent(new Event('storage')), 100);
+    } catch (err: any) {
+      setProfileMsg({ type: 'error', text: err.message || 'Failed to update profile.' });
+    } finally {
+      setSubmittingProfile(false);
+    }
+  };
+
+  // Submit Section 2: Email Address
+  const handleUpdateEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailMsg(null);
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setEmailMsg({ type: 'error', text: 'Please enter a valid email address.' });
       return;
     }
 
-    setSubmitting(true);
+    setSubmittingEmail(true);
 
     try {
-      const payload: any = {
-        display_name: displayName,
-        email,
-        bio,
-        avatar_url: avatarUrl,
-      };
+      const res = await api.updateProfile({ email: cleanEmail });
+      const updatedUser = { ...currentUser, ...res.user, email: cleanEmail };
+      syncUser(updatedUser);
+      setEmailMsg({ type: 'success', text: '✓ Email address updated successfully!' });
+    } catch (err: any) {
+      setEmailMsg({ type: 'error', text: err.message || 'Failed to update email address.' });
+    } finally {
+      setSubmittingEmail(false);
+    }
+  };
 
-      if (newPassword) {
-        payload.new_password = newPassword;
-      }
+  // Submit Section 3: Password Update
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMsg(null);
 
-      const res = await api.updateProfile(payload);
-      
-      // Update local storage user profile
-      const updatedUser = { ...currentUser, ...res.user, avatar_url: avatarUrl, email };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('dragyou_user', JSON.stringify(updatedUser));
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: 'Password must be at least 6 characters.' });
+      return;
+    }
 
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'New password and confirmation do not match.' });
+      return;
+    }
+
+    setSubmittingPassword(true);
+
+    try {
+      await api.updateProfile({ new_password: newPassword });
       setNewPassword('');
       setConfirmPassword('');
-      setMessage({ type: 'success', text: 'Profile & avatar updated successfully!' });
-
-      // Refresh page state smoothly so Navbar updates avatar immediately
-      setTimeout(() => {
-        window.dispatchEvent(new Event('storage'));
-      }, 100);
+      setPasswordMsg({ type: 'success', text: '✓ Password changed successfully!' });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to update profile.' });
+      setPasswordMsg({ type: 'error', text: err.message || 'Failed to update password.' });
     } finally {
-      setSubmitting(false);
+      setSubmittingPassword(false);
     }
   };
 
@@ -196,19 +235,19 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between border-b border-gray-800/80 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-gray-100 flex items-center gap-2.5 tracking-tight">
-            <UserIcon className="text-blue-400" size={24} /> Account Settings & Profile
+            <UserIcon className="text-blue-400" size={24} /> Account & Profile Settings
           </h1>
           <p className="text-xs text-gray-400 mt-1 font-mono">
-            Manage your avatar photo, display profile details, email, and security credentials
+            Manage your public developer profile, email address, and security credentials (GitHub Style)
           </p>
         </div>
 
-        <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+        <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-semibold">
           @{currentUser.username}
         </span>
       </div>
 
-      {/* Profile Photo Upload Header Card */}
+      {/* Profile Photo Header Card */}
       <div className="glass-panel p-6 rounded-2xl border border-gray-800/80 flex flex-col sm:flex-row items-center gap-6">
         <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
           {avatarUrl ? (
@@ -253,7 +292,7 @@ export default function ProfilePage() {
                 onClick={() => setAvatarUrl('')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-red-400 border border-gray-800 transition-colors"
               >
-                <Trash2 size={13} /> Remove
+                <Trash2 size={13} /> Remove Photo
               </button>
             )}
           </div>
@@ -281,26 +320,25 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Alert Notification */}
-      {message && (
-        <div
-          className={`p-4 rounded-xl border text-xs font-mono flex items-center gap-2.5 ${
-            message.type === 'success'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-              : 'bg-red-500/10 border-red-500/30 text-red-400'
-          }`}
-        >
-          {message.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
-          <span>{message.text}</span>
-        </div>
-      )}
-
-      {/* Profile Form */}
-      <form onSubmit={handleSubmit} className="glass-panel p-6 rounded-2xl border border-gray-800 space-y-6">
+      {/* SECTION 1: Public Profile Form */}
+      <form onSubmit={handleUpdatePublicProfile} className="glass-panel p-6 rounded-2xl border border-gray-800 space-y-5" autoComplete="off">
         <div className="border-b border-gray-800/80 pb-3 flex items-center gap-2">
           <Sparkles size={16} className="text-blue-400" />
-          <h3 className="text-sm font-bold text-gray-100 font-mono">Personal Information</h3>
+          <h3 className="text-sm font-bold text-gray-100 font-mono">Public Profile</h3>
         </div>
+
+        {profileMsg && (
+          <div
+            className={`p-3.5 rounded-xl border text-xs font-mono flex items-center gap-2.5 ${
+              profileMsg.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
+            }`}
+          >
+            {profileMsg.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
+            <span>{profileMsg.text}</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs font-mono">
           <div>
@@ -322,21 +360,6 @@ export default function ProfilePage() {
               placeholder="e.g. Aritra Dahabala"
               className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
             />
-          </div>
-
-          <div className="sm:col-span-2">
-            <label className="block text-gray-300 font-medium mb-1.5">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-3 h-4 w-4 text-gray-500" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.email@example.com"
-                className="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-3.5 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
-              />
-            </div>
           </div>
 
           <div className="sm:col-span-2">
@@ -365,53 +388,128 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Security / Change Password */}
-        <div className="border-t border-gray-800/80 pt-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Shield size={16} className="text-amber-400" />
-            <h3 className="text-sm font-bold text-gray-100 font-mono">Security & Password Update</h3>
+        <div className="pt-2 flex justify-end">
+          <button
+            type="submit"
+            disabled={submittingProfile}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs font-mono disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/20 active:scale-95"
+          >
+            <Save size={15} />
+            <span>{submittingProfile ? 'Saving...' : 'Update Public Profile'}</span>
+          </button>
+        </div>
+      </form>
+
+      {/* SECTION 2: Account Email Form */}
+      <form onSubmit={handleUpdateEmail} className="glass-panel p-6 rounded-2xl border border-gray-800 space-y-5" autoComplete="off">
+        <div className="border-b border-gray-800/80 pb-3 flex items-center gap-2">
+          <Mail size={16} className="text-blue-400" />
+          <h3 className="text-sm font-bold text-gray-100 font-mono">Account Email</h3>
+        </div>
+
+        {emailMsg && (
+          <div
+            className={`p-3.5 rounded-xl border text-xs font-mono flex items-center gap-2.5 ${
+              emailMsg.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
+            }`}
+          >
+            {emailMsg.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
+            <span>{emailMsg.text}</span>
+          </div>
+        )}
+
+        <div className="text-xs font-mono space-y-2">
+          <label className="block text-gray-300 font-medium">Email Address</label>
+          <div className="relative">
+            <Mail className="absolute left-3.5 top-3 h-4 w-4 text-gray-500" />
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. dhabalaritra67@gmail.com"
+              className="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-3.5 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+          <p className="text-[11px] text-gray-500">Your email address is used for commit signatures and account recovery notifications.</p>
+        </div>
+
+        <div className="pt-2 flex justify-end">
+          <button
+            type="submit"
+            disabled={submittingEmail}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs font-mono disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/20 active:scale-95"
+          >
+            <Save size={15} />
+            <span>{submittingEmail ? 'Updating Email...' : 'Update Email'}</span>
+          </button>
+        </div>
+      </form>
+
+      {/* SECTION 3: Change Password Form */}
+      <form onSubmit={handleUpdatePassword} className="glass-panel p-6 rounded-2xl border border-gray-800 space-y-5" autoComplete="off">
+        <div className="border-b border-gray-800/80 pb-3 flex items-center gap-2">
+          <Shield size={16} className="text-amber-400" />
+          <h3 className="text-sm font-bold text-gray-100 font-mono">Change Password</h3>
+        </div>
+
+        {passwordMsg && (
+          <div
+            className={`p-3.5 rounded-xl border text-xs font-mono flex items-center gap-2.5 ${
+              passwordMsg.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
+            }`}
+          >
+            {passwordMsg.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
+            <span>{passwordMsg.text}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs font-mono">
+          <div>
+            <label className="block text-gray-300 font-medium mb-1.5">New Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-3 h-4 w-4 text-gray-500" />
+              <input
+                type="password"
+                required
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 6 chars)"
+                className="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-3.5 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-amber-500 transition-colors"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs font-mono">
-            <div>
-              <label className="block text-gray-300 font-medium mb-1.5">New Password (optional)</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-3 h-4 w-4 text-gray-500" />
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Leave blank to keep current"
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-3.5 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-gray-300 font-medium mb-1.5">Confirm New Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-3 h-4 w-4 text-gray-500" />
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-3.5 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
+          <div>
+            <label className="block text-gray-300 font-medium mb-1.5">Confirm New Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-3 h-4 w-4 text-gray-500" />
+              <input
+                type="password"
+                required
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-3.5 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-amber-500 transition-colors"
+              />
             </div>
           </div>
         </div>
 
-        {/* Submit Action */}
-        <div className="border-t border-gray-800/80 pt-5 flex items-center justify-end gap-3">
+        <div className="pt-2 flex justify-end">
           <button
             type="submit"
-            disabled={submitting}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs font-mono disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/20 active:scale-95"
+            disabled={submittingPassword}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs font-mono disabled:opacity-50 transition-colors shadow-lg shadow-amber-600/20 active:scale-95"
           >
-            <Save size={15} />
-            <span>{submitting ? 'Saving Changes...' : 'Save Profile Changes'}</span>
+            <Key size={15} />
+            <span>{submittingPassword ? 'Changing Password...' : 'Change Password'}</span>
           </button>
         </div>
       </form>
