@@ -178,7 +178,7 @@ export const api = {
     files.forEach(f => form.append('files[]', f));
 
     const base = getApiBase();
-    const res = await fetch(`${base}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/upload`, {
+    const res = await fetch(`${base}${repoPath(owner, repo)}/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: form,
