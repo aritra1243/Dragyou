@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -563,6 +565,100 @@ func (h *Handler) ListPullRequests(w http.ResponseWriter, r *http.Request) {
 		Find(&prs)
 
 	respondJSON(w, http.StatusOK, map[string]any{"pull_requests": prs})
+}
+
+// POST /api/v1/repos/{owner}/{repo}/pulls/{id}/merge
+func (h *Handler) MergePullRequest(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	uid := middleware.GetUserID(r)
+	if !h.canWrite(repo, uid) {
+		respondError(w, http.StatusForbidden, "forbidden", "Write access required to merge pull requests")
+		return
+	}
+
+	prID, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	var pr models.PullRequest
+	if err := h.db.Where("id = ? AND repository_id = ?", prID, repo.ID).First(&pr).Error; err != nil {
+		respondError(w, http.StatusNotFound, "not_found", "Pull request not found")
+		return
+	}
+
+	if pr.State != models.PROpen {
+		respondError(w, http.StatusBadRequest, "invalid_state", "Pull request is not open")
+		return
+	}
+
+	novaDir := filepath.Join(repo.StoragePath, ".nova")
+	sourceHash, _ := h.engine.ResolveRef(novaDir, pr.SourceBranch)
+	if sourceHash == "" {
+		respondError(w, http.StatusBadRequest, "source_not_found", "Source branch ref not found")
+		return
+	}
+
+	targetRefPath := filepath.Join(novaDir, "refs", "heads", pr.TargetBranch)
+	if err := os.MkdirAll(filepath.Dir(targetRefPath), 0o755); err != nil {
+		respondError(w, http.StatusInternalServerError, "engine_error", err.Error())
+		return
+	}
+	if err := os.WriteFile(targetRefPath, []byte(sourceHash+"\n"), 0o644); err != nil {
+		respondError(w, http.StatusInternalServerError, "engine_error", err.Error())
+		return
+	}
+
+	now := time.Now()
+	pr.State = models.PRMerged
+	pr.MergeCommit = sourceHash
+	pr.MergedByID = &uid
+	pr.MergedAt = &now
+	h.db.Save(&pr)
+
+	h.db.Preload("Author").First(&pr, pr.ID)
+	respondJSON(w, http.StatusOK, map[string]any{
+		"message":      "Pull request merged successfully",
+		"pull_request": pr,
+	})
+}
+
+// POST /api/v1/repos/{owner}/{repo}/pulls/{id}/close
+func (h *Handler) ClosePullRequest(w http.ResponseWriter, r *http.Request) {
+	repo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	uid := middleware.GetUserID(r)
+	prID, _ := strconv.Atoi(chi.URLParam(r, "id"))
+
+	var pr models.PullRequest
+	if err := h.db.Where("id = ? AND repository_id = ?", prID, repo.ID).First(&pr).Error; err != nil {
+		respondError(w, http.StatusNotFound, "not_found", "Pull request not found")
+		return
+	}
+
+	if pr.AuthorID != uid && !h.canWrite(repo, uid) {
+		respondError(w, http.StatusForbidden, "forbidden", "Access denied")
+		return
+	}
+
+	if pr.State != models.PROpen {
+		respondError(w, http.StatusBadRequest, "invalid_state", "Pull request is not open")
+		return
+	}
+
+	now := time.Now()
+	pr.State = models.PRClosed
+	pr.ClosedAt = &now
+	h.db.Save(&pr)
+
+	h.db.Preload("Author").First(&pr, pr.ID)
+	respondJSON(w, http.StatusOK, map[string]any{
+		"message":      "Pull request closed",
+		"pull_request": pr,
+	})
 }
 
 // ── Issue handlers ────────────────────────────────────────────────────────

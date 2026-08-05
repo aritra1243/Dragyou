@@ -312,7 +312,11 @@ func (b *Bridge) BlobAt(repoPath, ref, filePath string) ([]byte, error) {
 	return nil, fmt.Errorf("file not found: %s", filePath)
 }
 
-// ── internal object-store helpers ─────────────────────────────────────────
+// ResolveRef resolves a ref name (branch name, "HEAD", or bare 64-char hash)
+// to a commit hash by reading .nova/refs/heads/<ref> or .nova/HEAD.
+func (b *Bridge) ResolveRef(novaDir, ref string) (string, error) {
+	return resolveRef(novaDir, ref)
+}
 
 // resolveRef resolves a ref name (branch name, "HEAD", or bare 64-char hash)
 // to a commit hash by reading .nova/refs/heads/<ref> or .nova/HEAD.

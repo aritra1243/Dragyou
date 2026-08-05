@@ -194,8 +194,10 @@ export const api = {
     }),
 
   // PRs & Issues
-  listPullRequests: (owner: string, repo: string) => fetcher<{ pull_requests: PullRequest[] }>(`${repoPath(owner, repo)}/pulls`),
+  listPullRequests: (owner: string, repo: string, state = 'open') => fetcher<{ pull_requests: PullRequest[] }>(`${repoPath(owner, repo)}/pulls?state=${encodeURIComponent(state)}`),
   createPullRequest: (owner: string, repo: string, data: any) => fetcher<PullRequest>(`${repoPath(owner, repo)}/pulls`, { method: 'POST', body: JSON.stringify(data) }),
+  mergePullRequest: (owner: string, repo: string, id: number) => fetcher<{ message: string; pull_request: PullRequest }>(`${repoPath(owner, repo)}/pulls/${id}/merge`, { method: 'POST' }),
+  closePullRequest: (owner: string, repo: string, id: number) => fetcher<{ message: string; pull_request: PullRequest }>(`${repoPath(owner, repo)}/pulls/${id}/close`, { method: 'POST' }),
   listIssues: (owner: string, repo: string) => fetcher<{ issues: Issue[] }>(`${repoPath(owner, repo)}/issues`),
   createIssue: (owner: string, repo: string, data: any) => fetcher<Issue>(`${repoPath(owner, repo)}/issues`, { method: 'POST', body: JSON.stringify(data) }),
 

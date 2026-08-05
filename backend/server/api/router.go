@@ -119,6 +119,8 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 				r.Route("/pulls", func(r chi.Router) {
 					r.Get("/", h.ListPullRequests)
 					r.With(mw.Auth(cfg.JWTSecret)).Post("/", h.CreatePullRequest)
+					r.With(mw.Auth(cfg.JWTSecret)).Post("/{id}/merge", h.MergePullRequest)
+					r.With(mw.Auth(cfg.JWTSecret)).Post("/{id}/close", h.ClosePullRequest)
 				})
 
 				// Issues
