@@ -9,7 +9,12 @@ export function getApiBase(): string {
 }
 
 export function getCloneUrl(owner: string, repo: string): string {
-  return `${getApiBase()}/repos/${owner}/${repo}`;
+  return `${getApiBase()}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+}
+
+// Helper: returns the URL-safe /repos/{owner}/{repo} prefix
+function repoPath(owner: string, repo: string): string {
+  return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
 }
 
 export function fmtSize(n?: number | null): string {
@@ -134,21 +139,21 @@ export const api = {
 
   // Repositories
   listRepos: () => fetcher<{ items: Repository[]; total_count: number }>('/repos'),
-  getRepo: (owner: string, repo: string) => fetcher<Repository>(`/repos/${owner}/${repo}`),
+  getRepo: (owner: string, repo: string) => fetcher<Repository>(repoPath(owner, repo)),
   createRepo: (data: any) => fetcher<Repository>('/repos', { method: 'POST', body: JSON.stringify(data) }),
-  deleteRepo: (owner: string, repo: string) => fetcher<{ message: string }>(`/repos/${owner}/${repo}`, { method: 'DELETE' }),
+  deleteRepo: (owner: string, repo: string) => fetcher<{ message: string }>(repoPath(owner, repo), { method: 'DELETE' }),
 
   // VCS details
-  getCommits: (owner: string, repo: string, max = 30) => fetcher<{ commits: Commit[] }>(`/repos/${owner}/${repo}/commits?max=${max}`),
-  getBranches: (owner: string, repo: string) => fetcher<{ branches: Branch[]; default_branch: string }>(`/repos/${owner}/${repo}/branches`),
+  getCommits: (owner: string, repo: string, max = 30) => fetcher<{ commits: Commit[] }>(`${repoPath(owner, repo)}/commits?max=${max}`),
+  getBranches: (owner: string, repo: string) => fetcher<{ branches: Branch[]; default_branch: string }>(`${repoPath(owner, repo)}/branches`),
   getTree: (owner: string, repo: string, ref = 'main', path = '') => {
     const cleanPath = path ? `/${path}` : '';
-    return fetcher<{ items: TreeItem[] }>(`/repos/${owner}/${repo}/tree/${ref}${cleanPath}`);
+    return fetcher<{ items: TreeItem[] }>(`${repoPath(owner, repo)}/tree/${encodeURIComponent(ref)}${cleanPath}`);
   },
   getBlob: async (owner: string, repo: string, ref = 'main', path = ''): Promise<string> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('dragyou_token') : null;
     const base = getApiBase();
-    const res = await fetch(`${base}/repos/${owner}/${repo}/blob/${ref}/${path}`, {
+    const res = await fetch(`${base}${repoPath(owner, repo)}/blob/${encodeURIComponent(ref)}/${path}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error('Failed to load blob content');
@@ -156,10 +161,10 @@ export const api = {
   },
 
   // PRs & Issues
-  listPullRequests: (owner: string, repo: string) => fetcher<{ pull_requests: PullRequest[] }>(`/repos/${owner}/${repo}/pulls`),
-  createPullRequest: (owner: string, repo: string, data: any) => fetcher<PullRequest>(`/repos/${owner}/${repo}/pulls`, { method: 'POST', body: JSON.stringify(data) }),
-  listIssues: (owner: string, repo: string) => fetcher<{ issues: Issue[] }>(`/repos/${owner}/${repo}/issues`),
-  createIssue: (owner: string, repo: string, data: any) => fetcher<Issue>(`/repos/${owner}/${repo}/issues`, { method: 'POST', body: JSON.stringify(data) }),
+  listPullRequests: (owner: string, repo: string) => fetcher<{ pull_requests: PullRequest[] }>(`${repoPath(owner, repo)}/pulls`),
+  createPullRequest: (owner: string, repo: string, data: any) => fetcher<PullRequest>(`${repoPath(owner, repo)}/pulls`, { method: 'POST', body: JSON.stringify(data) }),
+  listIssues: (owner: string, repo: string) => fetcher<{ issues: Issue[] }>(`${repoPath(owner, repo)}/issues`),
+  createIssue: (owner: string, repo: string, data: any) => fetcher<Issue>(`${repoPath(owner, repo)}/issues`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Web upload — drag-and-drop commit
   uploadFiles: async (owner: string, repo: string, files: File[], message: string, branch: string): Promise<{ commit: string; files: number; branch: string; message: string }> => {
@@ -173,7 +178,7 @@ export const api = {
     files.forEach(f => form.append('files[]', f));
 
     const base = getApiBase();
-    const res = await fetch(`${base}/repos/${owner}/${repo}/upload`, {
+    const res = await fetch(`${base}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: form,
