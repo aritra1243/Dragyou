@@ -282,6 +282,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
 
   // Load repo metadata + branches + commits
   useEffect(() => {
+    setError('');
     Promise.all([
       api.getRepo(owner, repo),
       api.getBranches(owner, repo),
@@ -291,16 +292,20 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
       setSelectedBranch(repoData.default_branch || 'main');
       setBranches(branchData.branches || []);
       setCommits(commitData.commits || []);
-    }).catch(() => setError('Failed to load repository'));
+    }).catch((err: any) => {
+      setError(err.message || 'Failed to load repository');
+    });
   }, [owner, repo]);
 
   // Load tree
   const loadTree = useCallback(() => {
     setLoading(true);
-    setError('');
     api.getTree(owner, repo, selectedBranch, currentPath)
       .then(data => setTreeItems(data.items || []))
-      .catch(() => { setTreeItems([]); setError('Could not load file tree'); })
+      .catch((err: any) => {
+        setTreeItems([]);
+        setError(prev => prev || err.message || 'Could not load file tree');
+      })
       .finally(() => setLoading(false));
   }, [owner, repo, selectedBranch, currentPath]);
 

@@ -436,6 +436,17 @@ func cleanParam(s string) string {
 	return s
 }
 
+func isNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "record not found") || strings.Contains(msg, "not found")
+}
+
 func (h *Handler) loadRepo(w http.ResponseWriter, r *http.Request) (*models.Repository, bool) {
 	owner := cleanParam(chi.URLParam(r, "owner"))
 	name  := cleanParam(chi.URLParam(r, "repo"))
@@ -443,12 +454,12 @@ func (h *Handler) loadRepo(w http.ResponseWriter, r *http.Request) (*models.Repo
 
 	var repo models.Repository
 	if err := h.db.Preload("Owner").Where("full_name = ?", fullName).First(&repo).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if isNotFound(err) {
 			respondError(w, http.StatusNotFound, "not_found",
 				"Repository "+fullName+" not found")
 			return nil, false
 		}
-		respondError(w, http.StatusInternalServerError, "db_error", "Database error")
+		respondError(w, http.StatusInternalServerError, "db_error", "Database error: "+err.Error())
 		return nil, false
 	}
 

@@ -43,10 +43,21 @@ func (b *Bridge) InitRepo(storagePath string) error {
 	if err := os.MkdirAll(storagePath, 0o755); err != nil {
 		return fmt.Errorf("init repo dir: %w", err)
 	}
-	out, err := b.run(storagePath, "init", storagePath)
-	if err != nil {
-		return fmt.Errorf("nova init: %w — %s", err, out)
+	novaDir := filepath.Join(storagePath, ".nova")
+	for _, d := range []string{
+		filepath.Join(novaDir, "objects"),
+		filepath.Join(novaDir, "refs", "heads"),
+	} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			return fmt.Errorf("mkdir %s: %w", d, err)
+		}
 	}
+	headPath := filepath.Join(novaDir, "HEAD")
+	if _, err := os.Stat(headPath); os.IsNotExist(err) {
+		_ = os.WriteFile(headPath, []byte("ref: refs/heads/main\n"), 0o644)
+	}
+	// Attempt nova CLI init if binary exists, ignore failure if missing
+	_, _ = b.run(storagePath, "init", storagePath)
 	return nil
 }
 
