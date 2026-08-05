@@ -69,7 +69,25 @@ function DropZone({
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+
+    if (e.dataTransfer.items) {
+      const validFiles: File[] = [];
+      const items = Array.from(e.dataTransfer.items);
+      for (const item of items) {
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry();
+          if (entry?.isDirectory) {
+            setMessage('Folders cannot be uploaded directly via web. Please select files.');
+            continue;
+          }
+          const file = item.getAsFile();
+          if (file) validFiles.push(file);
+        }
+      }
+      if (validFiles.length) addFiles(validFiles);
+    } else if (e.dataTransfer.files.length) {
+      addFiles(e.dataTransfer.files);
+    }
   };
 
   const removeFile = (name: string) =>
