@@ -250,11 +250,12 @@ std::string get_token(const dragyou::Repository& repo) {
     std::string tok = read_token_from(repo.nova() / "credentials");
     if (!tok.empty()) return tok;
 
-    // 2. Fall back to global ~/.nova/credentials
-    //    (written by nova login when outside a repo, or always as a backup)
+    // 2. Fall back to global ~/.drag/credentials or ~/.nova/credentials
     const char* home = std::getenv("USERPROFILE"); // Windows
     if (!home) home = std::getenv("HOME");          // Unix
     if (home) {
+        tok = read_token_from(fs::path(home) / ".drag" / "credentials");
+        if (!tok.empty()) return tok;
         tok = read_token_from(fs::path(home) / ".nova" / "credentials");
         if (!tok.empty()) return tok;
     }

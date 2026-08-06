@@ -67,7 +67,7 @@ int cmd_status(int /*argc*/, char** /*argv*/) {
             if (!de.is_regular_file()) continue;
             std::string rel = fs::relative(de.path(), *repo_root).string();
             std::replace(rel.begin(), rel.end(), '\\', '/');
-            if (rel.rfind(".nova/", 0) == 0) continue;
+            if (rel.rfind(".drag/", 0) == 0 || rel.rfind(".nova/", 0) == 0) continue;
             if (indexed_paths.find(rel) == indexed_paths.end())
                 untracked.push_back(rel);
         }

@@ -35,8 +35,8 @@ int cmd_add(int argc, char** argv) {
                 if (!entry.is_regular_file()) continue;
                 std::string rel = fs::relative(entry.path(), *repo_root).string();
                 std::replace(rel.begin(), rel.end(), '\\', '/');
-                // Skip .nova/
-                if (rel.rfind(".nova/", 0) == 0 || rel == ".nova") continue;
+                // Skip .drag/ and .nova/
+                if (rel.rfind(".drag/", 0) == 0 || rel == ".drag" || rel.rfind(".nova/", 0) == 0 || rel == ".nova") continue;
                 try {
                     idx.add(rel);
                     std::cout << "  staged: " << rel << '\n';

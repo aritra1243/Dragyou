@@ -147,11 +147,11 @@ int cmd_login(int argc, char** argv) {
         save_credentials(server, token, repo.nova() / "credentials");
     }
 
-    // Always save to global ~/.nova/credentials
+    // Always save to global ~/.drag/credentials
     const char* home = std::getenv("USERPROFILE");
     if (!home) home = std::getenv("HOME");
     if (home) {
-        save_credentials(server, token, fs::path(home) / ".nova" / "credentials");
+        save_credentials(server, token, fs::path(home) / ".drag" / "credentials");
     }
 
     std::cout << "\n✓ Logged in as " << username << " on " << server << '\n';

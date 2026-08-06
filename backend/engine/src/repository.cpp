@@ -66,13 +66,18 @@ static std::vector<uint8_t> zlib_decompress(const std::vector<uint8_t>& in,
 //  Repository
 // --------------------------------------------------------------------------
 Repository::Repository(const fs::path& root)
-    : root_(fs::absolute(root)), nova_(fs::absolute(root) / ".nova") {
+    : root_(fs::absolute(root)) {
+    if (fs::exists(fs::absolute(root) / ".drag")) {
+        nova_ = fs::absolute(root) / ".drag";
+    } else {
+        nova_ = fs::absolute(root) / ".nova";
+    }
     config_.load(config_path());
 }
 
 void Repository::init(const fs::path& root) {
-    fs::path nova = root / ".nova";
-    if (fs::exists(nova))
+    fs::path nova = root / ".drag";
+    if (fs::exists(nova) || fs::exists(root / ".nova"))
         throw std::runtime_error("Repository already exists at: " + root.string());
 
     // Create directory skeleton
@@ -92,7 +97,7 @@ void Repository::init(const fs::path& root) {
 std::optional<fs::path> Repository::discover(const fs::path& start) {
     fs::path cur = fs::absolute(start);
     while (true) {
-        if (fs::exists(cur / ".nova")) return cur;
+        if (fs::exists(cur / ".drag") || fs::exists(cur / ".nova")) return cur;
         fs::path parent = cur.parent_path();
         if (parent == cur) return std::nullopt;
         cur = parent;

@@ -611,14 +611,17 @@ func (h *Handler) MergePullRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	novaDir := filepath.Join(repo.StoragePath, ".nova")
-	sourceHash, _ := h.engine.ResolveRef(novaDir, pr.SourceBranch)
+	metaDir := filepath.Join(repo.StoragePath, ".drag")
+	if _, err := os.Stat(metaDir); os.IsNotExist(err) {
+		metaDir = filepath.Join(repo.StoragePath, ".nova")
+	}
+	sourceHash, _ := h.engine.ResolveRef(metaDir, pr.SourceBranch)
 	if sourceHash == "" {
 		respondError(w, http.StatusBadRequest, "source_not_found", "Source branch ref not found")
 		return
 	}
 
-	targetRefPath := filepath.Join(novaDir, "refs", "heads", pr.TargetBranch)
+	targetRefPath := filepath.Join(metaDir, "refs", "heads", pr.TargetBranch)
 	if err := os.MkdirAll(filepath.Dir(targetRefPath), 0o755); err != nil {
 		respondError(w, http.StatusInternalServerError, "engine_error", err.Error())
 		return

@@ -28,35 +28,47 @@ type Bridge struct {
 	repoStorageRoot string
 }
 
+func getRepoMetaDir(repoPath string) string {
+	dragDir := filepath.Join(repoPath, ".drag")
+	if _, err := os.Stat(dragDir); err == nil {
+		return dragDir
+	}
+	novaDir := filepath.Join(repoPath, ".nova")
+	if _, err := os.Stat(novaDir); err == nil {
+		return novaDir
+	}
+	return dragDir
+}
+
 // NewBridge creates a new engine bridge.
 func NewBridge(novaBin, repoStorageRoot string) *Bridge {
 	if novaBin == "" {
-		novaBin = "nova"
+		novaBin = "drag"
 	}
 	return &Bridge{novaBin: novaBin, repoStorageRoot: repoStorageRoot}
 }
 
 // ── Repository operations ─────────────────────────────────────────────────
 
-// InitRepo initializes a bare .nova/ repository at the given storage path.
+// InitRepo initializes a bare repository at the given storage path.
 func (b *Bridge) InitRepo(storagePath string) error {
 	if err := os.MkdirAll(storagePath, 0o755); err != nil {
 		return fmt.Errorf("init repo dir: %w", err)
 	}
-	novaDir := filepath.Join(storagePath, ".nova")
+	metaDir := getRepoMetaDir(storagePath)
 	for _, d := range []string{
-		filepath.Join(novaDir, "objects"),
-		filepath.Join(novaDir, "refs", "heads"),
+		filepath.Join(metaDir, "objects"),
+		filepath.Join(metaDir, "refs", "heads"),
 	} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			return fmt.Errorf("mkdir %s: %w", d, err)
 		}
 	}
-	headPath := filepath.Join(novaDir, "HEAD")
+	headPath := filepath.Join(metaDir, "HEAD")
 	if _, err := os.Stat(headPath); os.IsNotExist(err) {
 		_ = os.WriteFile(headPath, []byte("ref: refs/heads/main\n"), 0o644)
 	}
-	// Attempt nova CLI init if binary exists, ignore failure if missing
+	// Attempt drag CLI init if binary exists, ignore failure if missing
 	_, _ = b.run(storagePath, "init", storagePath)
 	return nil
 }
@@ -71,12 +83,12 @@ func (b *Bridge) Status(repoPath string) ([]StatusEntry, error) {
 	return nil, nil
 }
 
-// Log returns commit history as structured objects by reading .nova objects directly.
+// Log returns commit history as structured objects by reading .drag / .nova objects directly.
 func (b *Bridge) Log(repoPath string, max int) ([]CommitEntry, error) {
-	novaDir := filepath.Join(repoPath, ".nova")
+	metaDir := getRepoMetaDir(repoPath)
 
 	// Resolve HEAD → first commit hash
-	startHash, err := resolveRef(novaDir, "HEAD")
+	startHash, err := resolveRef(metaDir, "HEAD")
 	if err != nil || startHash == "" {
 		return []CommitEntry{}, nil // no commits yet
 	}
@@ -84,7 +96,7 @@ func (b *Bridge) Log(repoPath string, max int) ([]CommitEntry, error) {
 	commits := []CommitEntry{}
 	current := startHash
 	for i := 0; i < max && current != ""; i++ {
-		data, objType, err := readObject(novaDir, current)
+		data, objType, err := readObject(metaDir, current)
 		if err != nil || objType != "commit" {
 			break
 		}
@@ -143,12 +155,12 @@ func parseCommitEntry(hash string, data []byte) CommitEntry {
 
 // Branches returns the list of branches by reading .nova/refs/heads/ directly.
 func (b *Bridge) Branches(repoPath string) ([]BranchEntry, error) {
-	novaDir := filepath.Join(repoPath, ".nova")
-	headsDir := filepath.Join(novaDir, "refs", "heads")
+	metaDir := getRepoMetaDir(repoPath)
+	headsDir := filepath.Join(metaDir, "refs", "heads")
 
 	// Read current HEAD to determine active branch
 	currentBranch := ""
-	if data, err := os.ReadFile(filepath.Join(novaDir, "HEAD")); err == nil {
+	if data, err := os.ReadFile(filepath.Join(metaDir, "HEAD")); err == nil {
 		head := strings.TrimSpace(string(data))
 		if strings.HasPrefix(head, "ref: refs/heads/") {
 			currentBranch = strings.TrimPrefix(head, "ref: refs/heads/")
@@ -183,8 +195,8 @@ func (b *Bridge) Branches(repoPath string) ([]BranchEntry, error) {
 
 // CreateBranch creates a new branch pointing to the commit of targetRef.
 func (b *Bridge) CreateBranch(repoPath, branchName, targetRef string) error {
-	novaDir := filepath.Join(repoPath, ".nova")
-	commitHash, err := resolveRef(novaDir, targetRef)
+	metaDir := getRepoMetaDir(repoPath)
+	commitHash, err := resolveRef(metaDir, targetRef)
 	if err != nil || commitHash == "" {
 		return fmt.Errorf("target branch or commit %q not found", targetRef)
 	}
@@ -194,7 +206,7 @@ func (b *Bridge) CreateBranch(repoPath, branchName, targetRef string) error {
 		return fmt.Errorf("invalid branch name: %q", branchName)
 	}
 
-	refPath := filepath.Join(novaDir, "refs", "heads", branchName)
+	refPath := filepath.Join(metaDir, "refs", "heads", branchName)
 	if _, err := os.Stat(refPath); err == nil {
 		return fmt.Errorf("branch %q already exists", branchName)
 	}
@@ -213,16 +225,16 @@ func (b *Bridge) CreateBranch(repoPath, branchName, targetRef string) error {
 
 // TreeAt returns the file tree at the given ref/path by reading .nova objects directly.
 func (b *Bridge) TreeAt(repoPath, ref, path string) ([]TreeEntry, error) {
-	novaDir := filepath.Join(repoPath, ".nova")
+	metaDir := getRepoMetaDir(repoPath)
 
 	// 1. Resolve ref → commit hash
-	commitHash, err := resolveRef(novaDir, ref)
+	commitHash, err := resolveRef(metaDir, ref)
 	if err != nil || commitHash == "" {
 		return []TreeEntry{}, nil // no commits yet — empty tree
 	}
 
 	// 2. Read the commit object → get tree hash
-	commitData, _, err := readObject(novaDir, commitHash)
+	commitData, _, err := readObject(metaDir, commitHash)
 	if err != nil {
 		return nil, fmt.Errorf("read commit %s: %w", commitHash[:8], err)
 	}
@@ -238,7 +250,7 @@ func (b *Bridge) TreeAt(repoPath, ref, path string) ([]TreeEntry, error) {
 			if part == "" {
 				continue
 			}
-			entries, err := readTreeEntries(novaDir, treeHash)
+			entries, err := readTreeEntries(metaDir, treeHash)
 			if err != nil {
 				return nil, err
 			}
@@ -257,19 +269,19 @@ func (b *Bridge) TreeAt(repoPath, ref, path string) ([]TreeEntry, error) {
 	}
 
 	// 4. Read and return the tree entries
-	return readTreeEntries(novaDir, treeHash)
+	return readTreeEntries(metaDir, treeHash)
 }
 
 // BlobAt returns the raw content of a file at the given ref by walking the tree.
 func (b *Bridge) BlobAt(repoPath, ref, filePath string) ([]byte, error) {
-	novaDir := filepath.Join(repoPath, ".nova")
+	metaDir := getRepoMetaDir(repoPath)
 
-	commitHash, err := resolveRef(novaDir, ref)
+	commitHash, err := resolveRef(metaDir, ref)
 	if err != nil || commitHash == "" {
 		return nil, fmt.Errorf("ref %q not found", ref)
 	}
 
-	commitData, _, err := readObject(novaDir, commitHash)
+	commitData, _, err := readObject(metaDir, commitHash)
 	if err != nil {
 		return nil, fmt.Errorf("read commit: %w", err)
 	}
@@ -280,7 +292,7 @@ func (b *Bridge) BlobAt(repoPath, ref, filePath string) ([]byte, error) {
 
 	parts := strings.Split(strings.Trim(filePath, "/"), "/")
 	for i, part := range parts {
-		entries, err := readTreeEntries(novaDir, treeHash)
+		entries, err := readTreeEntries(metaDir, treeHash)
 		if err != nil {
 			return nil, err
 		}
@@ -291,7 +303,7 @@ func (b *Bridge) BlobAt(repoPath, ref, filePath string) ([]byte, error) {
 			}
 			if i == len(parts)-1 {
 				// This is the target file — read blob content
-				data, objType, err := readObject(novaDir, e.Hash)
+				data, objType, err := readObject(metaDir, e.Hash)
 				if err != nil {
 					return nil, fmt.Errorf("read blob %s: %w", e.Hash[:8], err)
 				}
@@ -314,25 +326,25 @@ func (b *Bridge) BlobAt(repoPath, ref, filePath string) ([]byte, error) {
 
 // ResolveRef resolves a ref name (branch name, "HEAD", or bare 64-char hash)
 // to a commit hash by reading .nova/refs/heads/<ref> or .nova/HEAD.
-func (b *Bridge) ResolveRef(novaDir, ref string) (string, error) {
-	return resolveRef(novaDir, ref)
+func (b *Bridge) ResolveRef(metaDir, ref string) (string, error) {
+	return resolveRef(metaDir, ref)
 }
 
 // resolveRef resolves a ref name (branch name, "HEAD", or bare 64-char hash)
 // to a commit hash by reading .nova/refs/heads/<ref> or .nova/HEAD.
-func resolveRef(novaDir, ref string) (string, error) {
+func resolveRef(metaDir, ref string) (string, error) {
 	if ref == "" {
 		ref = "HEAD"
 	}
 
 	// 1. If HEAD, resolve HEAD target
 	if ref == "HEAD" {
-		headFile := filepath.Join(novaDir, "HEAD")
+		headFile := filepath.Join(metaDir, "HEAD")
 		if data, err := os.ReadFile(headFile); err == nil {
 			head := strings.TrimSpace(string(data))
 			if strings.HasPrefix(head, "ref: ") {
 				refPath := strings.TrimSpace(strings.TrimPrefix(head, "ref: "))
-				return resolveRef(novaDir, refPath)
+				return resolveRef(metaDir, refPath)
 			} else if len(head) == 64 {
 				return head, nil
 			}
@@ -340,7 +352,7 @@ func resolveRef(novaDir, ref string) (string, error) {
 
 		// Fallback: try main or master if HEAD file doesn't exist
 		for _, fallback := range []string{"main", "master"} {
-			if data, err := os.ReadFile(filepath.Join(novaDir, "refs", "heads", fallback)); err == nil {
+			if data, err := os.ReadFile(filepath.Join(metaDir, "refs", "heads", fallback)); err == nil {
 				return strings.TrimSpace(string(data)), nil
 			}
 		}
@@ -349,22 +361,22 @@ func resolveRef(novaDir, ref string) (string, error) {
 	}
 
 	// 2. Try as branch: refs/heads/<ref>
-	refFile := filepath.Join(novaDir, "refs", "heads", ref)
+	refFile := filepath.Join(metaDir, "refs", "heads", ref)
 	if data, err := os.ReadFile(refFile); err == nil {
 		content := strings.TrimSpace(string(data))
 		if strings.HasPrefix(content, "ref: ") {
-			return resolveRef(novaDir, strings.TrimSpace(strings.TrimPrefix(content, "ref: ")))
+			return resolveRef(metaDir, strings.TrimSpace(strings.TrimPrefix(content, "ref: ")))
 		}
 		return content, nil
 	}
 
 	// 3. Try as full relative path (e.g. refs/tags/v1.0 or refs/heads/main)
 	if strings.HasPrefix(ref, "refs/") {
-		refFile2 := filepath.Join(novaDir, filepath.FromSlash(ref))
+		refFile2 := filepath.Join(metaDir, filepath.FromSlash(ref))
 		if data, err := os.ReadFile(refFile2); err == nil {
 			content := strings.TrimSpace(string(data))
 			if strings.HasPrefix(content, "ref: ") {
-				return resolveRef(novaDir, strings.TrimSpace(strings.TrimPrefix(content, "ref: ")))
+				return resolveRef(metaDir, strings.TrimSpace(strings.TrimPrefix(content, "ref: ")))
 			}
 			return content, nil
 		}
@@ -380,11 +392,11 @@ func resolveRef(novaDir, ref string) (string, error) {
 
 // readObject reads and decompresses a .nova object, returning (content, type, error).
 // Objects are stored as zlib-compressed: "<type> <size>\0<content>"
-func readObject(novaDir, hash string) ([]byte, string, error) {
+func readObject(metaDir, hash string) ([]byte, string, error) {
 	if len(hash) < 4 {
 		return nil, "", fmt.Errorf("hash too short: %q", hash)
 	}
-	objPath := filepath.Join(novaDir, "objects", hash[:2], hash[2:])
+	objPath := filepath.Join(metaDir, "objects", hash[:2], hash[2:])
 	compressed, err := os.ReadFile(objPath)
 	if err != nil {
 		return nil, "", fmt.Errorf("object %s not found: %w", hash[:8], err)
@@ -428,8 +440,8 @@ func parseCommitTreeHash(commitContent []byte) string {
 
 // readTreeEntries parses a tree object and returns its entries.
 // Tree wire format per entry: "<mode> <name>\0<32 raw bytes (SHA-256)>"
-func readTreeEntries(novaDir, treeHash string) ([]TreeEntry, error) {
-	data, objType, err := readObject(novaDir, treeHash)
+func readTreeEntries(metaDir, treeHash string) ([]TreeEntry, error) {
+	data, objType, err := readObject(metaDir, treeHash)
 	if err != nil {
 		return nil, fmt.Errorf("read tree %s: %w", treeHash[:8], err)
 	}
@@ -470,7 +482,7 @@ func readTreeEntries(novaDir, treeHash string) ([]TreeEntry, error) {
 			entryType = "tree"
 		} else {
 			// Try to get blob size
-			if blobData, _, err2 := readObject(novaDir, hash); err2 == nil {
+			if blobData, _, err2 := readObject(metaDir, hash); err2 == nil {
 				size = int64(len(blobData))
 			}
 		}
@@ -514,7 +526,8 @@ func (b *Bridge) ApplyPack(repoPath string, packData []byte) error {
 		return nil
 	}
 
-	objectsDir := filepath.Join(repoPath, ".nova", "objects")
+	metaDir := getRepoMetaDir(repoPath)
+	objectsDir := filepath.Join(metaDir, "objects")
 
 	offset := 16
 	for i := 0; i < count; i++ {
@@ -606,8 +619,8 @@ func (b *Bridge) UpdateRef(repoPath, ref, tip string) error {
 	if ref == "" || tip == "" {
 		return fmt.Errorf("UpdateRef: ref and tip must not be empty")
 	}
-	// Sanitise: strip leading "refs/" prefix duplication and resolve to path
-	refPath := filepath.Join(repoPath, ".nova", filepath.FromSlash(ref))
+	metaDir := getRepoMetaDir(repoPath)
+	refPath := filepath.Join(metaDir, filepath.FromSlash(ref))
 	if err := os.MkdirAll(filepath.Dir(refPath), 0o755); err != nil {
 		return fmt.Errorf("UpdateRef mkdir %s: %w", filepath.Dir(refPath), err)
 	}
@@ -633,7 +646,8 @@ func (b *Bridge) BuildFetchPack(repoPath string, have, want []string) ([]byte, e
 
 // BuildClonePack builds a pack containing all commits, trees, and blobs for cloning.
 func (b *Bridge) BuildClonePack(repoPath, branch string, depth int) ([]byte, error) {
-	objectsDir := filepath.Join(repoPath, ".nova", "objects")
+	metaDir := getRepoMetaDir(repoPath)
+	objectsDir := filepath.Join(metaDir, "objects")
 
 	buf := new(bytes.Buffer)
 	// Write 8-byte magic: DNYPACK\0
