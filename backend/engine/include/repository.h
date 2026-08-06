@@ -103,7 +103,6 @@ public:
     // ---- Paths ------------------------------------------------------------
     const fs::path& root()    const { return root_; }
     const fs::path& drag()    const { return drag_; }
-    const fs::path& drag()    const { return drag_; }
     fs::path objects_dir()    const { return drag_ / "objects"; }
     fs::path refs_dir()       const { return drag_ / "refs"; }
     fs::path index_path()     const { return drag_ / "index"; }

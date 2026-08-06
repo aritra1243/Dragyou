@@ -16,20 +16,7 @@ static thread_local std::string g_last_error;
 
 static void set_error(const std::string& msg) { g_last_error = msg; }
 
-// Helper internal functions outside extern "C"
-static dragyou::Signature parse_author_str(const std::string& s) {
-    dragyou::Signature sig;
-    size_t lt = s.find('<');
-    size_t gt = s.find('>');
-    if (lt != std::string::npos && gt != std::string::npos) {
-        sig.name  = s.substr(0, lt - 1);
-        sig.email = s.substr(lt + 1, gt - lt - 1);
-    } else {
-        sig.name = s;
-    }
-    sig.timestamp = static_cast<int64_t>(std::time(nullptr));
-    return sig;
-}
+
 
 static std::string state_str(dragyou::Index::StatusEntry::State s) {
     using S = dragyou::Index::StatusEntry::State;

@@ -92,7 +92,6 @@ MergeResult merge_lines(const std::vector<std::string>& base,
     }
 
     // Now emit merged output
-    int conflict_start_line = 1;
     std::vector<std::string> result_lines;
 
     auto flush_inserts = [&](int pos) {
