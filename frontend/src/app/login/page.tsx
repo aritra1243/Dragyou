@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { User as UserIcon, Lock } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, getApiBase } from '@/lib/api';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -35,8 +35,7 @@ function LoginContent() {
   }, [searchParams]);
 
   const handleGoogleLogin = () => {
-    const backendURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    window.location.href = `${backendURL}/api/v1/auth/google`;
+    window.location.href = `${getApiBase()}/auth/google`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

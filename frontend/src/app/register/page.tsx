@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { UserPlus, User as UserIcon, Mail, Lock, Sparkles } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, getApiBase } from '@/lib/api';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -14,8 +14,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleRegister = () => {
-    const backendURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    window.location.href = `${backendURL}/api/v1/auth/google`;
+    window.location.href = `${getApiBase()}/auth/google`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
