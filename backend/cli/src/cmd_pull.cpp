@@ -1,9 +1,9 @@
 // =============================================================================
-//  nova pull — Pull commits from a remote repository
+//  drag pull — Pull commits from a remote repository
 //
 //  Usage:
-//    nova pull [<remote>] [<branch>]
-//    nova pull origin main
+//    drag pull [<remote>] [<branch>]
+//    drag pull origin main
 //
 //  Protocol:
 //    1. POST /api/v1/repos/:owner/:repo/fetch
@@ -68,7 +68,7 @@ int cmd_pull(int argc, char** argv) {
 
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova pull: not a Dragyou repository\n";
+        std::cerr << "drag pull: not a Dragyou repository\n";
         return 1;
     }
 
@@ -81,8 +81,8 @@ int cmd_pull(int argc, char** argv) {
 
     std::string remote_url = get_remote_url(repo, remote_name);
     if (remote_url.empty()) {
-        std::cerr << "nova pull: no remote named '" << remote_name << "'\n";
-        std::cerr << "  Use: nova remote add " << remote_name << " <url>\n";
+        std::cerr << "drag pull: no remote named '" << remote_name << "'\n";
+        std::cerr << "  Use: drag remote add " << remote_name << " <url>\n";
         return 1;
     }
 
@@ -111,11 +111,11 @@ int cmd_pull(int argc, char** argv) {
     auto fetch_resp = http_post(remote_url + "/fetch", token, fb, "application/json");
 
     if (fetch_resp.status == 404) {
-        std::cerr << "nova pull: remote branch '" << branch_name << "' not found\n";
+        std::cerr << "drag pull: remote branch '" << branch_name << "' not found\n";
         return 1;
     }
     if (fetch_resp.status < 200 || fetch_resp.status >= 300) {
-        std::cerr << "nova pull: fetch failed (HTTP " << fetch_resp.status << ")\n";
+        std::cerr << "drag pull: fetch failed (HTTP " << fetch_resp.status << ")\n";
         return 1;
     }
 
@@ -127,7 +127,7 @@ int cmd_pull(int argc, char** argv) {
     if (!body.empty() && body[0] == '{') {
         // Server sent JSON with "pack_url" → download pack separately
         // For now: server inlines pack in response (simpler Phase 4 approach)
-        std::cerr << "nova pull: unexpected JSON response (expected binary pack)\n";
+        std::cerr << "drag pull: unexpected JSON response (expected binary pack)\n";
         return 1;
     }
 
@@ -141,7 +141,7 @@ int cmd_pull(int argc, char** argv) {
     try {
         pack = dragyou::Pack::deserialize(pack_bytes);
     } catch (const std::exception& e) {
-        std::cerr << "nova pull: invalid pack received: " << e.what() << '\n';
+        std::cerr << "drag pull: invalid pack received: " << e.what() << '\n';
         return 1;
     }
 
@@ -163,7 +163,7 @@ int cmd_pull(int argc, char** argv) {
     }
 
     if (remote_tip.empty()) {
-        std::cerr << "nova pull: no commit found in received pack\n";
+        std::cerr << "drag pull: no commit found in received pack\n";
         return 1;
     }
 

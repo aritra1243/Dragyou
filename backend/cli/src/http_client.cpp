@@ -1,5 +1,5 @@
 // =============================================================================
-//  nova CLI — Tiny HTTP Client & Repository Helpers implementation
+//  drag CLI — Tiny HTTP Client & Repository Helpers implementation
 // =============================================================================
 
 #include "http_client.h"
@@ -34,7 +34,7 @@ HttpResponse http_post(const std::string& url,
     std::wstring wurl(url.begin(), url.end());
     WinHttpCrackUrl(wurl.c_str(), 0, 0, &uc);
 
-    HINTERNET session = WinHttpOpen(L"nova/0.1", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+    HINTERNET session = WinHttpOpen(L"drag/0.1", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                     WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
     HINTERNET conn    = WinHttpConnect(session, uc.lpszHostName, uc.nPort, 0);
     DWORD flags = (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
@@ -117,7 +117,7 @@ HttpResponse http_post_with_ref(const std::string& url,
     std::wstring wurl(url.begin(), url.end());
     WinHttpCrackUrl(wurl.c_str(), 0, 0, &uc);
 
-    HINTERNET session = WinHttpOpen(L"nova/0.1", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+    HINTERNET session = WinHttpOpen(L"drag/0.1", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                     WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
     HINTERNET conn    = WinHttpConnect(session, uc.lpszHostName, uc.nPort, 0);
     DWORD flags = (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
@@ -246,17 +246,15 @@ std::string get_token(const dragyou::Repository& repo) {
         return "";
     };
 
-    // 1. Try repo-local .nova/credentials first
-    std::string tok = read_token_from(repo.nova() / "credentials");
+    // 1. Try repo-local .drag/credentials first
+    std::string tok = read_token_from(repo.drag() / "credentials");
     if (!tok.empty()) return tok;
 
-    // 2. Fall back to global ~/.drag/credentials or ~/.nova/credentials
+    // 2. Fall back to global ~/.drag/credentials
     const char* home = std::getenv("USERPROFILE"); // Windows
     if (!home) home = std::getenv("HOME");          // Unix
     if (home) {
         tok = read_token_from(fs::path(home) / ".drag" / "credentials");
-        if (!tok.empty()) return tok;
-        tok = read_token_from(fs::path(home) / ".nova" / "credentials");
         if (!tok.empty()) return tok;
     }
 

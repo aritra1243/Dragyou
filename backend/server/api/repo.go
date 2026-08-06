@@ -94,7 +94,7 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 	// On-disk path
 	storagePath := h.engine.RepoPath(owner.Username, req.Name)
 
-	// Initialize .nova/ on disk
+	// Initialize .drag/ on disk
 	if err := h.engine.InitRepo(storagePath); err != nil {
 		respondError(w, http.StatusInternalServerError, "engine_error",
 			fmt.Sprintf("Could not initialize repository: %v", err))
@@ -613,7 +613,7 @@ func (h *Handler) MergePullRequest(w http.ResponseWriter, r *http.Request) {
 
 	metaDir := filepath.Join(repo.StoragePath, ".drag")
 	if _, err := os.Stat(metaDir); os.IsNotExist(err) {
-		metaDir = filepath.Join(repo.StoragePath, ".nova")
+		metaDir = filepath.Join(repo.StoragePath, ".drag")
 	}
 	sourceHash, _ := h.engine.ResolveRef(metaDir, pr.SourceBranch)
 	if sourceHash == "" {
@@ -824,8 +824,8 @@ func (h *Handler) toRepoResponse(r *http.Request, repo *models.Repository) repoR
 
 	return repoResponse{
 		Repository:  *repo,
-		CloneURL:    fmt.Sprintf("http://%s/api/v1/repos/%s.nova", host, repo.FullName),
-		SSHURL:      fmt.Sprintf("nova@%s:%s.nova", host, repo.FullName),
+		CloneURL:    fmt.Sprintf("http://%s/api/v1/repos/%s.drag", host, repo.FullName),
+		SSHURL:      fmt.Sprintf("drag@%s:%s.drag", host, repo.FullName),
 		Permissions: perms,
 	}
 }

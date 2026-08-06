@@ -1,5 +1,5 @@
 // =============================================================================
-//  nova branch — List or create branches
+//  drag branch — List or create branches
 // =============================================================================
 
 #include "repository.h"
@@ -13,16 +13,16 @@ static const char* CYAN  = "\033[36m";
 int cmd_branch(int argc, char** argv) {
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova branch: not a Dragyou repository\n";
+        std::cerr << "drag branch: not a Dragyou repository\n";
         return 1;
     }
 
     try {
         dragyou::Repository repo(*repo_root);
 
-        // nova branch           → list
-        // nova branch <name>    → create
-        // nova branch -d <name> → delete
+        // drag branch           → list
+        // drag branch <name>    → create
+        // drag branch -d <name> → delete
 
         if (argc == 1) {
             // List branches
@@ -50,12 +50,12 @@ int cmd_branch(int argc, char** argv) {
         // Delete
         if (std::string(argv[1]) == "-d" || std::string(argv[1]) == "--delete") {
             if (argc < 3) {
-                std::cerr << "Usage: nova branch -d <name>\n";
+                std::cerr << "Usage: drag branch -d <name>\n";
                 return 1;
             }
             auto branch = repo.current_branch();
             if (branch && *branch == argv[2]) {
-                std::cerr << "nova branch: cannot delete the currently checked-out branch '"
+                std::cerr << "drag branch: cannot delete the currently checked-out branch '"
                           << argv[2] << "'\n";
                 return 1;
             }
@@ -68,13 +68,13 @@ int cmd_branch(int argc, char** argv) {
         std::string name = argv[1];
         auto head = repo.resolve_HEAD();
         if (!head) {
-            std::cerr << "nova branch: no commits yet, cannot create branch\n";
+            std::cerr << "drag branch: no commits yet, cannot create branch\n";
             return 1;
         }
 
         std::string ref = "refs/heads/" + name;
         if (repo.read_ref(ref)) {
-            std::cerr << "nova branch: branch '" << name << "' already exists\n";
+            std::cerr << "drag branch: branch '" << name << "' already exists\n";
             return 1;
         }
 
@@ -83,7 +83,7 @@ int cmd_branch(int argc, char** argv) {
         return 0;
 
     } catch (const std::exception& e) {
-        std::cerr << "nova branch: " << e.what() << '\n';
+        std::cerr << "drag branch: " << e.what() << '\n';
         return 1;
     }
 }

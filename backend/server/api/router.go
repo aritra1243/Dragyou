@@ -25,7 +25,7 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 	h := &Handler{
 		cfg:    cfg,
 		db:     db,
-		engine: engine.NewBridge(cfg.NovaBin, cfg.RepoStoragePath),
+		engine: engine.NewBridge(cfg.DragBin, cfg.RepoStoragePath),
 	}
 
 	r := chi.NewRouter()
@@ -61,7 +61,6 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 	// ── API v1 ────────────────────────────────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/download/drag", h.DownloadDragClient)
-		r.Get("/download/nova", h.DownloadDragClient)
 
 		// Auth (public)
 		r.Route("/auth", func(r chi.Router) {

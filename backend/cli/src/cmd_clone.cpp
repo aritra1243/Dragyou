@@ -1,16 +1,16 @@
 // =============================================================================
-//  nova clone — Clone a remote repository (virtual/shallow clone)
+//  drag clone — Clone a remote repository (virtual/shallow clone)
 //
 //  Usage:
-//    nova clone <url> [<directory>]
-//    nova clone https://dragyou.io/alice/myrepo
-//    nova clone https://dragyou.io/alice/myrepo ./local-name
-//    nova clone --depth 1 <url>      (shallow: 1 commit only)
+//    drag clone <url> [<directory>]
+//    drag clone https://dragyou.io/alice/myrepo
+//    drag clone https://dragyou.io/alice/myrepo ./local-name
+//    drag clone --depth 1 <url>      (shallow: 1 commit only)
 //
 //  Design (virtual clone):
 //    - Downloads only commit graph + tree metadata (~50-200MB)
 //    - Blobs are fetched lazily when files are accessed
-//    - Creates a full .nova/ structure locally
+//    - Creates a full .drag/ structure locally
 // =============================================================================
 
 #include "repository.h"
@@ -50,8 +50,8 @@ static void restore_tree(dragyou::Repository& repo, const dragyou::Hash& tree_ha
 // ── Derive repo name from URL ────────────────────────────────────────────
 static std::string url_to_dirname(const std::string& url) {
     std::string s = url;
-    // Remove trailing .nova or /
-    if (s.size() >= 5 && s.substr(s.size() - 5) == ".nova") s = s.substr(0, s.size() - 5);
+    // Remove trailing .drag or /
+    if (s.size() >= 5 && s.substr(s.size() - 5) == ".drag") s = s.substr(0, s.size() - 5);
     while (!s.empty() && (s.back() == '/' || s.back() == '\\')) s.pop_back();
     size_t pos = s.rfind('/');
     if (pos != std::string::npos) s = s.substr(pos + 1);
@@ -60,7 +60,7 @@ static std::string url_to_dirname(const std::string& url) {
 
 int cmd_clone(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "Usage: nova clone [--depth <n>] <url> [<directory>]\n";
+        std::cerr << "Usage: drag clone [--depth <n>] <url> [<directory>]\n";
         return 1;
     }
 
@@ -80,7 +80,7 @@ int cmd_clone(int argc, char** argv) {
     }
 
     if (url.empty()) {
-        std::cerr << "nova clone: URL required\n";
+        std::cerr << "drag clone: URL required\n";
         return 1;
     }
 
@@ -88,7 +88,7 @@ int cmd_clone(int argc, char** argv) {
 
     fs::path dest_path = fs::absolute(dest);
     if (fs::exists(dest_path)) {
-        std::cerr << "nova clone: destination '" << dest << "' already exists\n";
+        std::cerr << "drag clone: destination '" << dest << "' already exists\n";
         return 1;
     }
 
@@ -98,10 +98,10 @@ int cmd_clone(int argc, char** argv) {
     // Token optional (for private repos)
     std::string token;
     {
-        // Try to find any token in ~/.nova/credentials or system config
+        // Try to find any token in ~/.drag/credentials or system config
         fs::path home = fs::path(std::getenv("USERPROFILE") ? std::getenv("USERPROFILE") :
                                                                std::getenv("HOME"));
-        fs::path cred = home / ".nova" / "credentials";
+        fs::path cred = home / ".drag" / "credentials";
         if (fs::exists(cred)) {
             std::ifstream f(cred);
             std::string line;
@@ -123,15 +123,15 @@ int cmd_clone(int argc, char** argv) {
     auto resp = http_post(clone_url, token, cb, "application/json");
 
     if (resp.status == 401) {
-        std::cerr << "nova clone: authentication required. Run 'nova login' first.\n";
+        std::cerr << "drag clone: authentication required. Run 'drag login' first.\n";
         return 1;
     }
     if (resp.status == 404) {
-        std::cerr << "nova clone: repository not found at " << url << '\n';
+        std::cerr << "drag clone: repository not found at " << url << '\n';
         return 1;
     }
     if (resp.status < 200 || resp.status >= 300) {
-        std::cerr << "nova clone: server error (HTTP " << resp.status << ")\n";
+        std::cerr << "drag clone: server error (HTTP " << resp.status << ")\n";
         std::cerr << resp.body << '\n';
         return 1;
     }
@@ -142,7 +142,7 @@ int cmd_clone(int argc, char** argv) {
     try {
         pack = dragyou::Pack::deserialize(pack_bytes);
     } catch (const std::exception& e) {
-        std::cerr << "nova clone: invalid pack data: " << e.what() << '\n';
+        std::cerr << "drag clone: invalid pack data: " << e.what() << '\n';
         return 1;
     }
 
@@ -176,7 +176,7 @@ int cmd_clone(int argc, char** argv) {
     }
 
     if (tip.empty()) {
-        std::cerr << "nova clone: no commits found in pack (empty repository?)\n";
+        std::cerr << "drag clone: no commits found in pack (empty repository?)\n";
         // Initialize as empty repo — that's fine
         std::cout << "Cloned empty repository.\n";
         return 0;

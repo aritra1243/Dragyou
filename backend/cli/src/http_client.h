@@ -1,6 +1,6 @@
 #pragma once
 // =============================================================================
-//  nova CLI — Tiny HTTP Client & Repository Helpers
+//  drag CLI — Tiny HTTP Client & Repository Helpers
 // =============================================================================
 
 #include "repository.h"

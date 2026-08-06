@@ -1,5 +1,5 @@
 // =============================================================================
-//  nova checkout — Switch to a branch or commit
+//  drag checkout — Switch to a branch or commit
 // =============================================================================
 
 #include "repository.h"
@@ -12,13 +12,13 @@
 
 int cmd_checkout(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "Usage: nova checkout <branch|commit>\n";
+        std::cerr << "Usage: drag checkout <branch|commit>\n";
         return 1;
     }
 
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova checkout: not a Dragyou repository\n";
+        std::cerr << "drag checkout: not a Dragyou repository\n";
         return 1;
     }
 
@@ -29,7 +29,7 @@ int cmd_checkout(int argc, char** argv) {
 
         auto target_hash = repo.resolve_name(target);
         if (!target_hash) {
-            std::cerr << "nova checkout: unknown branch or commit '" << target << "'\n";
+            std::cerr << "drag checkout: unknown branch or commit '" << target << "'\n";
             return 1;
         }
 
@@ -72,7 +72,7 @@ int cmd_checkout(int argc, char** argv) {
 
         return 0;
     } catch (const std::exception& e) {
-        std::cerr << "nova checkout: " << e.what() << '\n';
+        std::cerr << "drag checkout: " << e.what() << '\n';
         return 1;
     }
 }

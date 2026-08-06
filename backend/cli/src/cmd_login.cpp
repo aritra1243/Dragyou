@@ -1,12 +1,12 @@
 // =============================================================================
-//  nova login — Authenticate with a Dragyou server
+//  drag login — Authenticate with a Dragyou server
 //
 //  Usage:
-//    nova login [<server-url>]
-//    nova login https://dragyou.io
+//    drag login [<server-url>]
+//    drag login https://dragyou.io
 //
-//  Stores the access token in .nova/credentials (repo-local)
-//  and also in ~/.nova/credentials (global, for clone without a repo)
+//  Stores the access token in .drag/credentials (repo-local)
+//  and also in ~/.drag/credentials (global, for clone without a repo)
 // =============================================================================
 
 #include "repository.h"
@@ -107,11 +107,11 @@ int cmd_login(int argc, char** argv) {
     auto resp = http_post(login_url, "", body_bytes, "application/json");
 
     if (resp.status == 401) {
-        std::cerr << "\nnova login: invalid credentials\n";
+        std::cerr << "\ndrag login: invalid credentials\n";
         return 1;
     }
     if (resp.status < 200 || resp.status >= 300) {
-        std::cerr << "\nnova login: server error (HTTP " << resp.status << ")\n";
+        std::cerr << "\ndrag login: server error (HTTP " << resp.status << ")\n";
         return 1;
     }
 
@@ -136,7 +136,7 @@ int cmd_login(int argc, char** argv) {
     }
 
     if (token.empty()) {
-        std::cerr << "\nnova login: could not parse token from response\n";
+        std::cerr << "\ndrag login: could not parse token from response\n";
         return 1;
     }
 
@@ -144,7 +144,7 @@ int cmd_login(int argc, char** argv) {
     auto repo_root = dragyou::Repository::discover();
     if (repo_root) {
         dragyou::Repository repo(*repo_root);
-        save_credentials(server, token, repo.nova() / "credentials");
+        save_credentials(server, token, repo.drag() / "credentials");
     }
 
     // Always save to global ~/.drag/credentials

@@ -36,7 +36,7 @@ if ($Target -eq "clean") {
 
 # ── C++ Engine + CLI ─────────────────────────────────────────────────────
 if ($Target -in @("all", "engine", "cli")) {
-    Write-Step "Building C++ Engine and nova CLI"
+    Write-Step "Building C++ Engine and drag CLI"
 
     Assert-Tool "cmake"
 
@@ -58,7 +58,7 @@ if ($Target -in @("all", "engine", "cli")) {
         cmake --build . --config $BuildType
         if ($LASTEXITCODE -ne 0) { throw "CMake build failed" }
 
-        Write-Host "nova CLI built: $BinDir\nova.exe" -ForegroundColor Green
+        Write-Host "drag CLI built: $BinDir\drag.exe" -ForegroundColor Green
     } finally {
         Pop-Location
     }
@@ -99,6 +99,6 @@ Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Add $BinDir to your PATH"
 Write-Host "  2. Edit backend\server\.env with your PostgreSQL credentials"
-Write-Host "  3. Run: nova init   (to test the CLI)"
+Write-Host "  3. Run: drag init   (to test the CLI)"
 Write-Host "  4. Run: cd backend\server && go run .   (to start the API)"
 Write-Host "  5. Visit: http://localhost:8080"

@@ -195,11 +195,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 // GET /api/v1/download/drag
 func (h *Handler) DownloadDragClient(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename=\"drag.exe\"")
-	binPath := h.cfg.DragBin
-	if binPath == "" {
-		binPath = h.cfg.NovaBin
-	}
-	http.ServeFile(w, r, binPath)
+	http.ServeFile(w, r, h.cfg.DragBin)
 }
 
 // ── Token helpers ─────────────────────────────────────────────────────────

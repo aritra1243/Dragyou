@@ -1,5 +1,5 @@
 // =============================================================================
-//  nova diff — Show changes between working tree and index
+//  drag diff — Show changes between working tree and index
 // =============================================================================
 
 #include "repository.h"
@@ -17,7 +17,7 @@ static const char* CYAN   = "\033[36m";
 static const char* WHITE  = "\033[97m";
 
 int cmd_diff(int argc, char** argv) {
-    // nova diff [--staged] [<file>]
+    // drag diff [--staged] [<file>]
     bool staged = false;
     std::string specific_file;
 
@@ -29,7 +29,7 @@ int cmd_diff(int argc, char** argv) {
 
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova diff: not a Dragyou repository\n";
+        std::cerr << "drag diff: not a Dragyou repository\n";
         return 1;
     }
 
@@ -86,7 +86,7 @@ int cmd_diff(int argc, char** argv) {
 
         return 0;
     } catch (const std::exception& e) {
-        std::cerr << "nova diff: " << e.what() << '\n';
+        std::cerr << "drag diff: " << e.what() << '\n';
         return 1;
     }
 }

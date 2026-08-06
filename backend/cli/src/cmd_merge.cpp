@@ -1,5 +1,5 @@
 // =============================================================================
-//  nova merge — Merge a branch into the current branch
+//  drag merge — Merge a branch into the current branch
 // =============================================================================
 
 #include "repository.h"
@@ -15,13 +15,13 @@
 
 int cmd_merge(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "Usage: nova merge <branch>\n";
+        std::cerr << "Usage: drag merge <branch>\n";
         return 1;
     }
 
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova merge: not a Dragyou repository\n";
+        std::cerr << "drag merge: not a Dragyou repository\n";
         return 1;
     }
 
@@ -33,8 +33,8 @@ int cmd_merge(int argc, char** argv) {
         auto ours_hash   = repo.resolve_HEAD();
         auto theirs_hash = repo.resolve_name(theirs_name);
 
-        if (!ours_hash)   { std::cerr << "nova merge: no commits on current branch\n"; return 1; }
-        if (!theirs_hash) { std::cerr << "nova merge: unknown branch '" << theirs_name << "'\n"; return 1; }
+        if (!ours_hash)   { std::cerr << "drag merge: no commits on current branch\n"; return 1; }
+        if (!theirs_hash) { std::cerr << "drag merge: unknown branch '" << theirs_name << "'\n"; return 1; }
 
         if (*ours_hash == *theirs_hash) {
             std::cout << "Already up to date.\n";
@@ -76,7 +76,7 @@ int cmd_merge(int argc, char** argv) {
         }
 
         if (base_hash.empty()) {
-            std::cerr << "nova merge: no common ancestor found — cannot merge unrelated histories\n";
+            std::cerr << "drag merge: no common ancestor found — cannot merge unrelated histories\n";
             return 1;
         }
 
@@ -182,7 +182,7 @@ int cmd_merge(int argc, char** argv) {
         return 0;
 
     } catch (const std::exception& e) {
-        std::cerr << "nova merge: " << e.what() << '\n';
+        std::cerr << "drag merge: " << e.what() << '\n';
         return 1;
     }
 }

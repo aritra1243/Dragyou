@@ -1,7 +1,7 @@
 #pragma once
 // =============================================================================
 //  Dragyou VCS — Staging Index
-//  The index (.nova/index) tracks staged files.
+//  The index (.drag/index) tracks staged files.
 //  Binary format:
 //    Magic: "DNYIDX\0\0" (8 bytes)
 //    Version: uint32_t (4 bytes, big-endian) = 1

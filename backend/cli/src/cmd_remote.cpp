@@ -1,11 +1,11 @@
 // =============================================================================
-//  nova remote — Manage remote repository references
+//  drag remote — Manage remote repository references
 //
 //  Usage:
-//    nova remote add <name> <url>      Add a remote
-//    nova remote remove <name>         Remove a remote
-//    nova remote list                  List all remotes
-//    nova remote set-url <name> <url>  Update remote URL
+//    drag remote add <name> <url>      Add a remote
+//    drag remote remove <name>         Remove a remote
+//    drag remote list                  List all remotes
+//    drag remote set-url <name> <url>  Update remote URL
 // =============================================================================
 
 #include "repository.h"
@@ -18,7 +18,7 @@
 
 namespace fs = std::filesystem;
 
-// Remotes stored in .nova/config under [remote "<name>"] sections
+// Remotes stored in .drag/config under [remote "<name>"] sections
 // Format:
 //   [remote "origin"]
 //   url = https://dragyou.io/alice/myrepo
@@ -85,14 +85,14 @@ static void write_remotes(const fs::path& config_path,
 int cmd_remote(int argc, char** argv) {
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova remote: not a Dragyou repository\n";
+        std::cerr << "drag remote: not a Dragyou repository\n";
         return 1;
     }
 
     dragyou::Repository repo(*repo_root);
     auto remotes = read_remotes(repo.config_path());
 
-    // nova remote  /  nova remote list
+    // drag remote  /  drag remote list
     if (argc <= 1 || std::string(argv[1]) == "list") {
         if (remotes.empty()) {
             std::cout << "No remotes configured.\n";
@@ -105,16 +105,16 @@ int cmd_remote(int argc, char** argv) {
         return 0;
     }
 
-    // nova remote add <name> <url>
+    // drag remote add <name> <url>
     if (std::string(argv[1]) == "add") {
         if (argc < 4) {
-            std::cerr << "Usage: nova remote add <name> <url>\n";
+            std::cerr << "Usage: drag remote add <name> <url>\n";
             return 1;
         }
         std::string name = argv[2];
         std::string url  = argv[3];
         if (remotes.count(name)) {
-            std::cerr << "nova remote: remote '" << name << "' already exists\n";
+            std::cerr << "drag remote: remote '" << name << "' already exists\n";
             return 1;
         }
         remotes[name] = {name, url, ""};
@@ -123,15 +123,15 @@ int cmd_remote(int argc, char** argv) {
         return 0;
     }
 
-    // nova remote remove <name>
+    // drag remote remove <name>
     if (std::string(argv[1]) == "remove" || std::string(argv[1]) == "rm") {
         if (argc < 3) {
-            std::cerr << "Usage: nova remote remove <name>\n";
+            std::cerr << "Usage: drag remote remove <name>\n";
             return 1;
         }
         std::string name = argv[2];
         if (!remotes.count(name)) {
-            std::cerr << "nova remote: no remote named '" << name << "'\n";
+            std::cerr << "drag remote: no remote named '" << name << "'\n";
             return 1;
         }
         remotes.erase(name);
@@ -140,16 +140,16 @@ int cmd_remote(int argc, char** argv) {
         return 0;
     }
 
-    // nova remote set-url <name> <url>
+    // drag remote set-url <name> <url>
     if (std::string(argv[1]) == "set-url") {
         if (argc < 4) {
-            std::cerr << "Usage: nova remote set-url <name> <url>\n";
+            std::cerr << "Usage: drag remote set-url <name> <url>\n";
             return 1;
         }
         std::string name = argv[2];
         std::string url  = argv[3];
         if (!remotes.count(name)) {
-            std::cerr << "nova remote: no remote named '" << name << "'\n";
+            std::cerr << "drag remote: no remote named '" << name << "'\n";
             return 1;
         }
         remotes[name].url = url;
@@ -158,7 +158,7 @@ int cmd_remote(int argc, char** argv) {
         return 0;
     }
 
-    std::cerr << "nova remote: unknown subcommand '" << argv[1] << "'\n";
-    std::cerr << "Usage: nova remote [add|remove|list|set-url] ...\n";
+    std::cerr << "drag remote: unknown subcommand '" << argv[1] << "'\n";
+    std::cerr << "Usage: drag remote [add|remove|list|set-url] ...\n";
     return 1;
 }

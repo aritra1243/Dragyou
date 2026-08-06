@@ -1,5 +1,5 @@
 // =============================================================================
-//  nova init — Initialize a new Dragyou repository
+//  drag init — Initialize a new Dragyou repository
 // =============================================================================
 
 #include "repository.h"
@@ -10,16 +10,16 @@
 int cmd_init(int argc, char** argv) {
     namespace fs = std::filesystem;
 
-    // nova init [path]
+    // drag init [path]
     fs::path target = (argc >= 2) ? fs::path(argv[1]) : fs::current_path();
 
     try {
         dragyou::Repository::init(target);
         std::cout << "Initialized empty Dragyou repository in "
-                  << (target / ".nova").string() << '\n';
+                  << (target / ".drag").string() << '\n';
         return 0;
     } catch (const std::exception& e) {
-        std::cerr << "nova init: " << e.what() << '\n';
+        std::cerr << "drag init: " << e.what() << '\n';
         return 1;
     }
 }

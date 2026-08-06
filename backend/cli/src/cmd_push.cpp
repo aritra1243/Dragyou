@@ -1,13 +1,13 @@
 // =============================================================================
-//  nova push — Push commits to a remote repository
+//  drag push — Push commits to a remote repository
 //
 //  Usage:
-//    nova push [<remote>] [<branch>]
-//    nova push origin main
-//    nova push --force origin main
+//    drag push [<remote>] [<branch>]
+//    drag push origin main
+//    drag push --force origin main
 //
 //  Protocol:
-//    1. Read remote URL from .nova/config
+//    1. Read remote URL from .drag/config
 //    2. POST /api/v1/repos/:owner/:repo/push/negotiate
 //       → server tells us which objects it needs
 //    3. POST /api/v1/repos/:owner/:repo/push/pack
@@ -50,7 +50,7 @@ int cmd_push(int argc, char** argv) {
 
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova push: not a Dragyou repository\n";
+        std::cerr << "drag push: not a Dragyou repository\n";
         return 1;
     }
 
@@ -60,7 +60,7 @@ int cmd_push(int argc, char** argv) {
     if (branch_name.empty()) {
         auto branch = repo.current_branch();
         if (!branch) {
-            std::cerr << "nova push: detached HEAD — specify a branch\n";
+            std::cerr << "drag push: detached HEAD — specify a branch\n";
             return 1;
         }
         branch_name = *branch;
@@ -68,20 +68,20 @@ int cmd_push(int argc, char** argv) {
 
     auto tip = repo.resolve_HEAD();
     if (!tip) {
-        std::cerr << "nova push: nothing to push (no commits)\n";
+        std::cerr << "drag push: nothing to push (no commits)\n";
         return 1;
     }
 
     std::string remote_url = get_remote_url(repo, remote_name);
     if (remote_url.empty()) {
-        std::cerr << "nova push: no remote named '" << remote_name << "'\n";
-        std::cerr << "  Use: nova remote add " << remote_name << " <url>\n";
+        std::cerr << "drag push: no remote named '" << remote_name << "'\n";
+        std::cerr << "  Use: drag remote add " << remote_name << " <url>\n";
         return 1;
     }
 
     std::string token = get_token(repo);
     if (token.empty()) {
-        std::cerr << "nova push: not authenticated. Run 'nova login' first.\n";
+        std::cerr << "drag push: not authenticated. Run 'drag login' first.\n";
         return 1;
     }
 
@@ -112,15 +112,15 @@ int cmd_push(int argc, char** argv) {
     auto neg_resp = http_post(neg_url, token, neg_bytes, "application/json");
 
     if (neg_resp.status == 401) {
-        std::cerr << "nova push: authentication failed. Run 'nova login' again.\n";
+        std::cerr << "drag push: authentication failed. Run 'drag login' again.\n";
         return 1;
     }
     if (neg_resp.status == 403) {
-        std::cerr << "nova push: permission denied on " << remote_url << '\n';
+        std::cerr << "drag push: permission denied on " << remote_url << '\n';
         return 1;
     }
     if (neg_resp.status < 200 || neg_resp.status >= 300) {
-        std::cerr << "nova push: negotiate failed (HTTP " << neg_resp.status << ")\n";
+        std::cerr << "drag push: negotiate failed (HTTP " << neg_resp.status << ")\n";
         std::cerr << neg_resp.body << '\n';
         return 1;
     }
@@ -156,7 +156,7 @@ int cmd_push(int argc, char** argv) {
                                         ref_header, tip_header);
 
     if (pack_resp.status < 200 || pack_resp.status >= 300) {
-        std::cerr << "nova push: pack upload failed (HTTP " << pack_resp.status << ")\n";
+        std::cerr << "drag push: pack upload failed (HTTP " << pack_resp.status << ")\n";
         std::cerr << pack_resp.body << '\n';
         return 1;
     }

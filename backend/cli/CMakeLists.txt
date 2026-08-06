@@ -23,21 +23,21 @@ set(CLI_SOURCES
     src/cmd_login.cpp
 )
 
-add_executable(nova ${CLI_SOURCES})
+add_executable(drag ${CLI_SOURCES})
 
-target_include_directories(nova PRIVATE
+target_include_directories(drag PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/third_party
 )
 
-target_link_libraries(nova PRIVATE dragyou_engine_static)
+target_link_libraries(drag PRIVATE dragyou_engine_static)
 
 # Platform-specific HTTP libraries
 if(WIN32)
-    target_link_libraries(nova PRIVATE winhttp)
+    target_link_libraries(drag PRIVATE winhttp)
 else()
     find_package(CURL REQUIRED)
-    target_link_libraries(nova PRIVATE CURL::libcurl)
+    target_link_libraries(drag PRIVATE CURL::libcurl)
 endif()
 
-install(TARGETS nova DESTINATION bin)
+install(TARGETS drag DESTINATION bin)

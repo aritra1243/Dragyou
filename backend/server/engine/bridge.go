@@ -16,36 +16,28 @@ import (
 	"time"
 )
 
-// Bridge is the interface between the Go server and the C++ nova engine.
-// Phase 1: subprocess bridge (calls the nova CLI binary).
+// Bridge is the interface between the Go server and the C++ drag engine.
+// Phase 1: subprocess bridge (calls the drag CLI binary).
 // Phase 2: upgrade to CGo shared library without changing the interface.
 type Bridge struct {
-	// novaBin is the path to the nova CLI binary.
-	// Falls back to "nova" on PATH if not set.
-	novaBin string
+	// dragBin is the path to the drag CLI binary.
+	// Falls back to "drag" on PATH if not set.
+	dragBin string
 
-	// repoStorageRoot is where all repository .nova/ directories live.
+	// repoStorageRoot is where all repository .drag/ directories live.
 	repoStorageRoot string
 }
 
 func getRepoMetaDir(repoPath string) string {
-	dragDir := filepath.Join(repoPath, ".drag")
-	if _, err := os.Stat(dragDir); err == nil {
-		return dragDir
-	}
-	novaDir := filepath.Join(repoPath, ".nova")
-	if _, err := os.Stat(novaDir); err == nil {
-		return novaDir
-	}
-	return dragDir
+	return filepath.Join(repoPath, ".drag")
 }
 
 // NewBridge creates a new engine bridge.
-func NewBridge(novaBin, repoStorageRoot string) *Bridge {
-	if novaBin == "" {
-		novaBin = "drag"
+func NewBridge(dragBin, repoStorageRoot string) *Bridge {
+	if dragBin == "" {
+		dragBin = "drag"
 	}
-	return &Bridge{novaBin: novaBin, repoStorageRoot: repoStorageRoot}
+	return &Bridge{dragBin: dragBin, repoStorageRoot: repoStorageRoot}
 }
 
 // ── Repository operations ─────────────────────────────────────────────────
@@ -77,13 +69,13 @@ func (b *Bridge) InitRepo(storagePath string) error {
 func (b *Bridge) Status(repoPath string) ([]StatusEntry, error) {
 	out, err := b.run(repoPath, "status")
 	if err != nil {
-		return nil, fmt.Errorf("nova status: %w — %s", err, out)
+		return nil, fmt.Errorf("drag status: %w — %s", err, out)
 	}
-	// parse JSON output (nova status --json in future; for now plain text)
+	// parse JSON output (drag status --json in future; for now plain text)
 	return nil, nil
 }
 
-// Log returns commit history as structured objects by reading .drag / .nova objects directly.
+// Log returns commit history as structured objects by reading .drag objects directly.
 func (b *Bridge) Log(repoPath string, max int) ([]CommitEntry, error) {
 	metaDir := getRepoMetaDir(repoPath)
 
@@ -153,7 +145,7 @@ func parseCommitEntry(hash string, data []byte) CommitEntry {
 }
 
 
-// Branches returns the list of branches by reading .nova/refs/heads/ directly.
+// Branches returns the list of branches by reading .drag/refs/heads/ directly.
 func (b *Bridge) Branches(repoPath string) ([]BranchEntry, error) {
 	metaDir := getRepoMetaDir(repoPath)
 	headsDir := filepath.Join(metaDir, "refs", "heads")
@@ -223,7 +215,7 @@ func (b *Bridge) CreateBranch(repoPath, branchName, targetRef string) error {
 }
 
 
-// TreeAt returns the file tree at the given ref/path by reading .nova objects directly.
+// TreeAt returns the file tree at the given ref/path by reading .drag objects directly.
 func (b *Bridge) TreeAt(repoPath, ref, path string) ([]TreeEntry, error) {
 	metaDir := getRepoMetaDir(repoPath)
 
@@ -325,13 +317,13 @@ func (b *Bridge) BlobAt(repoPath, ref, filePath string) ([]byte, error) {
 }
 
 // ResolveRef resolves a ref name (branch name, "HEAD", or bare 64-char hash)
-// to a commit hash by reading .nova/refs/heads/<ref> or .nova/HEAD.
+// to a commit hash by reading .drag/refs/heads/<ref> or .drag/HEAD.
 func (b *Bridge) ResolveRef(metaDir, ref string) (string, error) {
 	return resolveRef(metaDir, ref)
 }
 
 // resolveRef resolves a ref name (branch name, "HEAD", or bare 64-char hash)
-// to a commit hash by reading .nova/refs/heads/<ref> or .nova/HEAD.
+// to a commit hash by reading .drag/refs/heads/<ref> or .drag/HEAD.
 func resolveRef(metaDir, ref string) (string, error) {
 	if ref == "" {
 		ref = "HEAD"
@@ -390,7 +382,7 @@ func resolveRef(metaDir, ref string) (string, error) {
 	return "", fmt.Errorf("ref not found: %s", ref)
 }
 
-// readObject reads and decompresses a .nova object, returning (content, type, error).
+// readObject reads and decompresses a .drag object, returning (content, type, error).
 // Objects are stored as zlib-compressed: "<type> <size>\0<content>"
 func readObject(metaDir, hash string) ([]byte, string, error) {
 	if len(hash) < 4 {
@@ -597,7 +589,7 @@ func (b *Bridge) ApplyPack(repoPath string, packData []byte) error {
 		zw.Close()
 		compressed := zbuf.Bytes()
 
-		// Write to .nova/objects/<prefix2>/<rest>
+		// Write to .drag/objects/<prefix2>/<rest>
 		prefix := hash[:2]
 		rest := hash[2:]
 		dir := filepath.Join(objectsDir, prefix)
@@ -614,7 +606,7 @@ func (b *Bridge) ApplyPack(repoPath string, packData []byte) error {
 }
 
 // UpdateRef atomically updates a ref in the repository.
-// Writes directly to .nova/refs/<ref> to match how the C++ engine stores refs.
+// Writes directly to .drag/refs/<ref> to match how the C++ engine stores refs.
 func (b *Bridge) UpdateRef(repoPath, ref, tip string) error {
 	if ref == "" || tip == "" {
 		return fmt.Errorf("UpdateRef: ref and tip must not be empty")
@@ -624,13 +616,13 @@ func (b *Bridge) UpdateRef(repoPath, ref, tip string) error {
 	if err := os.MkdirAll(filepath.Dir(refPath), 0o755); err != nil {
 		return fmt.Errorf("UpdateRef mkdir %s: %w", filepath.Dir(refPath), err)
 	}
-	// Write hash + newline (matches how nova CLI reads refs)
+	// Write hash + newline (matches how drag CLI reads refs)
 	if err := os.WriteFile(refPath, []byte(tip+"\n"), 0o644); err != nil {
 		return fmt.Errorf("UpdateRef write %s: %w", refPath, err)
 	}
 
 	// Also ensure HEAD exists and points to this ref
-	headPath := filepath.Join(repoPath, ".nova", "HEAD")
+	headPath := filepath.Join(repoPath, ".drag", "HEAD")
 	if _, err := os.Stat(headPath); os.IsNotExist(err) {
 		_ = os.WriteFile(headPath, []byte("ref: "+ref+"\n"), 0o644)
 	}
@@ -639,7 +631,7 @@ func (b *Bridge) UpdateRef(repoPath, ref, tip string) error {
 
 // BuildFetchPack builds a pack of objects the client needs (server → client).
 func (b *Bridge) BuildFetchPack(repoPath string, have, want []string) ([]byte, error) {
-	// Phase 4 stub: delegate to nova fetch-pack subcommand
+	// Phase 4 stub: delegate to drag fetch-pack subcommand
 	// Returns empty pack if nothing to send
 	return []byte{}, nil
 }
@@ -787,9 +779,9 @@ type TreeEntry struct {
 
 // ── internal ──────────────────────────────────────────────────────────────
 
-// run executes the nova CLI in the given working directory.
+// run executes the drag CLI in the given working directory.
 func (b *Bridge) run(cwd string, args ...string) (string, error) {
-	cmd := exec.Command(b.novaBin, args...)
+	cmd := exec.Command(b.dragBin, args...)
 	cmd.Dir = cwd
 
 	out, err := cmd.CombinedOutput()
@@ -810,9 +802,9 @@ type treeWriteEntry struct {
 }
 
 // writeObject hashes content with SHA-256, zlib-compresses it, and stores it
-// under .nova/objects/<prefix2>/<rest64>. Returns the 64-char hex hash.
+// under .drag/objects/<prefix2>/<rest64>. Returns the 64-char hex hash.
 // If the object already exists it is a no-op (content-addressed store).
-func writeObject(novaDir, objType string, content []byte) (string, error) {
+func writeObject(dragDir, objType string, content []byte) (string, error) {
 	// Build full object bytes: "<type> <size>\0<content>"
 	header := fmt.Sprintf("%s %d\x00", objType, len(content))
 	full := append([]byte(header), content...)
@@ -821,7 +813,7 @@ func writeObject(novaDir, objType string, content []byte) (string, error) {
 	sum := sha256.Sum256(full)
 	hashStr := fmt.Sprintf("%x", sum)
 
-	objDir := filepath.Join(novaDir, "objects", hashStr[:2])
+	objDir := filepath.Join(dragDir, "objects", hashStr[:2])
 	objPath := filepath.Join(objDir, hashStr[2:])
 
 	// Skip write if already present (idempotent)
@@ -846,10 +838,10 @@ func writeObject(novaDir, objType string, content []byte) (string, error) {
 	return hashStr, nil
 }
 
-// writeTree serialises tree entries in nova binary format and stores the result
+// writeTree serialises tree entries in drag binary format and stores the result
 // as a tree object. Returns the 64-char hex hash of the tree.
 // Wire format per entry: "<mode> <name>\0<32 raw SHA-256 bytes>"
-func writeTree(novaDir string, entries []treeWriteEntry) (string, error) {
+func writeTree(dragDir string, entries []treeWriteEntry) (string, error) {
 	var buf bytes.Buffer
 	for _, e := range entries {
 		buf.WriteString(e.mode + " " + e.name + "\x00")
@@ -859,10 +851,10 @@ func writeTree(novaDir string, entries []treeWriteEntry) (string, error) {
 		}
 		buf.Write(hashBytes)
 	}
-	return writeObject(novaDir, "tree", buf.Bytes())
+	return writeObject(dragDir, "tree", buf.Bytes())
 }
 
-// WebCommit creates a commit directly in the nova object store without the CLI.
+// WebCommit creates a commit directly in the drag object store without the CLI.
 // It:
 //  1. Writes each file as a blob object
 //  2. Reads the current HEAD tree (if any) and overlays the new blobs

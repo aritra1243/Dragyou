@@ -1,7 +1,7 @@
 #pragma once
 // =============================================================================
 //  Dragyou VCS — Repository
-//  Manages .nova/ directory: object store, refs, HEAD, config
+//  Manages .drag/ directory: object store, refs, HEAD, config
 // =============================================================================
 
 #include "objects.h"
@@ -17,7 +17,7 @@ namespace dragyou {
 namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------------
-//  Repository config (stored in .nova/config)
+//  Repository config (stored in .drag/config)
 // --------------------------------------------------------------------------
 struct RepoConfig {
     std::string user_name;
@@ -33,7 +33,7 @@ struct RepoConfig {
 //
 //  Directory layout:
 //    <root>/
-//      .nova/
+//      .drag/
 //        HEAD          — "ref: refs/heads/main"  or bare hash
 //        config        — INI-style config
 //        index         — staging area (binary)
@@ -50,7 +50,7 @@ public:
     // ---- Lifecycle --------------------------------------------------------
     explicit Repository(const fs::path& root);
 
-    /// Create a new .nova/ directory at the given path.
+    /// Create a new .drag/ directory at the given path.
     static void init(const fs::path& root);
 
     /// Find the repository root by walking up from cwd.
@@ -102,12 +102,13 @@ public:
 
     // ---- Paths ------------------------------------------------------------
     const fs::path& root()    const { return root_; }
-    const fs::path& nova()    const { return nova_; }
-    fs::path objects_dir()    const { return nova_ / "objects"; }
-    fs::path refs_dir()       const { return nova_ / "refs"; }
-    fs::path index_path()     const { return nova_ / "index"; }
-    fs::path config_path()    const { return nova_ / "config"; }
-    fs::path HEAD_path()      const { return nova_ / "HEAD"; }
+    const fs::path& drag()    const { return drag_; }
+    const fs::path& drag()    const { return drag_; }
+    fs::path objects_dir()    const { return drag_ / "objects"; }
+    fs::path refs_dir()       const { return drag_ / "refs"; }
+    fs::path index_path()     const { return drag_ / "index"; }
+    fs::path config_path()    const { return drag_ / "config"; }
+    fs::path HEAD_path()      const { return drag_ / "HEAD"; }
 
     // ---- Config -----------------------------------------------------------
     RepoConfig& config()             { return config_; }
@@ -124,7 +125,7 @@ public:
 
 private:
     fs::path   root_;
-    fs::path   nova_;
+    fs::path   drag_;
     RepoConfig config_;
 };
 

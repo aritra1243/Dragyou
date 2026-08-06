@@ -2,7 +2,7 @@
 
 A Git-inspired, enterprise-scale Version Control System with:
 - **C++20 VCS Engine** — SHA-256 objects, staging index, Myers diff, 3-way merge
-- **`nova` CLI** — `init`, `add`, `commit`, `status`, `log`, `branch`, `checkout`, `diff`, `merge`
+- **`drag` CLI** — `init`, `add`, `commit`, `status`, `log`, `branch`, `checkout`, `diff`, `merge`
 - **Go Platform Server** — JWT auth, repository API, PostgreSQL, rate limiting
 
 ---
@@ -15,7 +15,7 @@ backend/
 │   ├── include/     ← Public headers
 │   ├── src/         ← Implementations
 │   └── third_party/ ← picosha2 (SHA-256, header-only)
-├── cli/             ← nova CLI (C++, links against engine)
+├── cli/             ← drag CLI (C++, links against engine)
 │   └── src/
 └── server/          ← Go platform backend (REST API)
     ├── api/         ← Route handlers
@@ -70,7 +70,7 @@ cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 ninja
 ```
 
-The `nova.exe` binary will be at `build/bin/nova.exe`.
+The `drag.exe` binary will be at `build/bin/drag.exe`.
 
 ### Using Visual Studio
 
@@ -93,27 +93,27 @@ $env:PATH = "d:\Dragyou\backend\build\bin;" + $env:PATH
 # Create a test repo
 mkdir d:\test-repo
 cd d:\test-repo
-nova init
+drag init
 
 # Stage and commit files
 echo "hello dragyou" > hello.txt
-nova add hello.txt
-nova commit -m "initial commit"
+drag add hello.txt
+drag commit -m "initial commit"
 
 # Check status and log
-nova status
-nova log
+drag status
+drag log
 
 # Branch workflow
-nova branch feature-auth
-nova checkout feature-auth
+drag branch feature-auth
+drag checkout feature-auth
 echo "auth feature" > auth.txt
-nova add auth.txt
-nova commit -m "add auth feature"
-nova diff
-nova checkout main
-nova merge feature-auth
-nova log
+drag add auth.txt
+drag commit -m "add auth feature"
+drag diff
+drag checkout main
+drag merge feature-auth
+drag log
 ```
 
 ---
@@ -228,10 +228,10 @@ Redis-backed distributed rate limiting will replace the in-memory implementation
 
 ```
 Working Tree
-     │  nova add
+     │  drag add
      ▼
-   Index (.nova/index)
-     │  nova commit
+   Index (.drag/index)
+     │  drag commit
      ▼
    Tree (SHA-256)
      │
@@ -245,7 +245,7 @@ Working Tree
   HEAD → ref: refs/heads/main
 ```
 
-Objects are stored compressed (zlib) in `.nova/objects/<2-char-prefix>/<62-char-hash>`.
+Objects are stored compressed (zlib) in `.drag/objects/<2-char-prefix>/<62-char-hash>`.
 
 ---
 
@@ -254,7 +254,7 @@ Objects are stored compressed (zlib) in `.nova/objects/<2-char-prefix>/<62-char-
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1 | ✅ Done | C++ VCS Engine (objects, diff, merge) |
-| 2 | ✅ Done | nova CLI (all commands) |
+| 2 | ✅ Done | drag CLI (all commands) |
 | 3 | ✅ Done | Go REST API (auth, repos, PRs, issues) |
 | 4 | 🔜 Next | Remote protocol (push/pull) |
 | 5 | 🔜 | SSH key auth + Argon2id |

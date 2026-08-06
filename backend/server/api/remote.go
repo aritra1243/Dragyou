@@ -66,7 +66,7 @@ func (h *Handler) PushNegotiate(w http.ResponseWriter, r *http.Request) {
 		if hash == "" {
 			return false
 		}
-		objDir := repo.StoragePath + "/.nova/objects/" + hash[:2]
+		objDir := repo.StoragePath + "/.drag/objects/" + hash[:2]
 		objFile := objDir + "/" + hash[2:]
 		_, err := os.Stat(objFile)
 		return err == nil

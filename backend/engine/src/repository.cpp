@@ -1,6 +1,6 @@
 // =============================================================================
 //  Dragyou VCS — Repository implementation
-//  Manages .nova/ directory, object store, refs, HEAD
+//  Manages .drag/ directory, object store, refs, HEAD
 // =============================================================================
 
 #include "repository.h"
@@ -68,36 +68,36 @@ static std::vector<uint8_t> zlib_decompress(const std::vector<uint8_t>& in,
 Repository::Repository(const fs::path& root)
     : root_(fs::absolute(root)) {
     if (fs::exists(fs::absolute(root) / ".drag")) {
-        nova_ = fs::absolute(root) / ".drag";
+        drag_ = fs::absolute(root) / ".drag";
     } else {
-        nova_ = fs::absolute(root) / ".nova";
+        drag_ = fs::absolute(root) / ".drag";
     }
     config_.load(config_path());
 }
 
 void Repository::init(const fs::path& root) {
-    fs::path nova = root / ".drag";
-    if (fs::exists(nova) || fs::exists(root / ".nova"))
+    fs::path drag = root / ".drag";
+    if (fs::exists(drag) || fs::exists(root / ".drag"))
         throw std::runtime_error("Repository already exists at: " + root.string());
 
     // Create directory skeleton
-    fs::create_directories(nova / "objects");
-    fs::create_directories(nova / "refs" / "heads");
-    fs::create_directories(nova / "refs" / "tags");
+    fs::create_directories(drag / "objects");
+    fs::create_directories(drag / "refs" / "heads");
+    fs::create_directories(drag / "refs" / "tags");
 
     // HEAD → main
-    std::ofstream(nova / "HEAD") << "ref: refs/heads/main\n";
+    std::ofstream(drag / "HEAD") << "ref: refs/heads/main\n";
 
     // Default config
     RepoConfig cfg;
     cfg.default_branch = "main";
-    cfg.save(nova / "config");
+    cfg.save(drag / "config");
 }
 
 std::optional<fs::path> Repository::discover(const fs::path& start) {
     fs::path cur = fs::absolute(start);
     while (true) {
-        if (fs::exists(cur / ".drag") || fs::exists(cur / ".nova")) return cur;
+        if (fs::exists(cur / ".drag") || fs::exists(cur / ".drag")) return cur;
         fs::path parent = cur.parent_path();
         if (parent == cur) return std::nullopt;
         cur = parent;
@@ -179,7 +179,7 @@ Commit Repository::read_commit(const Hash& h) const { return Commit::deserialize
 
 // ---- Refs ----------------------------------------------------------------
 std::optional<Hash> Repository::read_ref(const std::string& ref) const {
-    fs::path p = nova_ / ref;
+    fs::path p = drag_ / ref;
     if (!fs::exists(p)) return std::nullopt;
     std::ifstream f(p);
     std::string line;
@@ -189,25 +189,25 @@ std::optional<Hash> Repository::read_ref(const std::string& ref) const {
 }
 
 void Repository::write_ref(const std::string& ref, const Hash& hash) {
-    fs::path p = nova_ / ref;
+    fs::path p = drag_ / ref;
     fs::create_directories(p.parent_path());
     std::ofstream(p) << hash << '\n';
 }
 
 void Repository::delete_ref(const std::string& ref) {
-    fs::path p = nova_ / ref;
+    fs::path p = drag_ / ref;
     if (fs::exists(p)) fs::remove(p);
 }
 
 std::vector<std::pair<std::string, Hash>>
 Repository::list_refs(const std::string& prefix) const {
     std::vector<std::pair<std::string, Hash>> result;
-    fs::path base = nova_ / prefix;
+    fs::path base = drag_ / prefix;
     if (!fs::exists(base)) return result;
 
     for (auto& entry : fs::recursive_directory_iterator(base)) {
         if (entry.is_regular_file()) {
-            std::string rel = "refs/" + fs::relative(entry.path(), nova_ / "refs").string();
+            std::string rel = "refs/" + fs::relative(entry.path(), drag_ / "refs").string();
             // normalize path separators
             std::replace(rel.begin(), rel.end(), '\\', '/');
             std::ifstream f(entry.path());

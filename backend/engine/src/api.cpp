@@ -369,7 +369,7 @@ int dragyou_merge(const char* repo, const char* theirs_branch) {
 
         // TODO: full three-way merge (find LCA, then merge trees file by file)
         // For now: report as needing manual merge
-        set_error("Non-fast-forward merge: three-way merge not yet implemented. Use nova checkout and manually resolve.");
+        set_error("Non-fast-forward merge: three-way merge not yet implemented. Use drag checkout and manually resolve.");
         return DRAGYOU_ERR_CONFLICT;
 
     } catch (const std::exception& e) {

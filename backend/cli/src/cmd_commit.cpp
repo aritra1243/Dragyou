@@ -1,5 +1,5 @@
 // =============================================================================
-//  nova commit — Create a new commit
+//  drag commit — Create a new commit
 // =============================================================================
 
 #include "repository.h"
@@ -10,7 +10,7 @@
 #include <iostream>
 
 int cmd_commit(int argc, char** argv) {
-    // Parse: nova commit -m "message"
+    // Parse: drag commit -m "message"
     std::string message;
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -20,13 +20,13 @@ int cmd_commit(int argc, char** argv) {
     }
 
     if (message.empty()) {
-        std::cerr << "Usage: nova commit -m <message>\n";
+        std::cerr << "Usage: drag commit -m <message>\n";
         return 1;
     }
 
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova commit: not a Dragyou repository\n";
+        std::cerr << "drag commit: not a Dragyou repository\n";
         return 1;
     }
 
@@ -36,7 +36,7 @@ int cmd_commit(int argc, char** argv) {
         idx.load();
 
         if (idx.entries().empty()) {
-            std::cerr << "nova commit: nothing to commit (use 'nova add' to stage files)\n";
+            std::cerr << "drag commit: nothing to commit (use 'drag add' to stage files)\n";
             return 1;
         }
 
@@ -80,7 +80,7 @@ int cmd_commit(int argc, char** argv) {
 
         return 0;
     } catch (const std::exception& e) {
-        std::cerr << "nova commit: " << e.what() << '\n';
+        std::cerr << "drag commit: " << e.what() << '\n';
         return 1;
     }
 }

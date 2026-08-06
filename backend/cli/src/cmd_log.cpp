@@ -1,5 +1,5 @@
 // =============================================================================
-//  nova log — Show commit history
+//  drag log — Show commit history
 // =============================================================================
 
 #include "repository.h"
@@ -33,7 +33,7 @@ int cmd_log(int argc, char** argv) {
 
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {
-        std::cerr << "nova log: not a Dragyou repository\n";
+        std::cerr << "drag log: not a Dragyou repository\n";
         return 1;
     }
 
@@ -85,7 +85,7 @@ int cmd_log(int argc, char** argv) {
 
         return 0;
     } catch (const std::exception& e) {
-        std::cerr << "nova log: " << e.what() << '\n';
+        std::cerr << "drag log: " << e.what() << '\n';
         return 1;
     }
 }
