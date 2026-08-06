@@ -873,12 +873,12 @@ func (b *Bridge) WebCommit(
 	repoPath, branch, message, authorName, authorEmail string,
 	files map[string][]byte,
 ) (string, error) {
-	novaDir := filepath.Join(repoPath, ".nova")
+	metaDir := getRepoMetaDir(repoPath)
 
 	// Ensure basic directory structure exists
 	for _, d := range []string{
-		filepath.Join(novaDir, "objects"),
-		filepath.Join(novaDir, "refs", "heads"),
+		filepath.Join(metaDir, "objects"),
+		filepath.Join(metaDir, "refs", "heads"),
 	} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			return "", fmt.Errorf("mkdir %s: %w", d, err)
@@ -888,7 +888,7 @@ func (b *Bridge) WebCommit(
 	// 1. Write blob objects
 	blobHashes := make(map[string]string, len(files))
 	for name, content := range files {
-		h, err := writeObject(novaDir, "blob", content)
+		h, err := writeObject(metaDir, "blob", content)
 		if err != nil {
 			return "", fmt.Errorf("write blob %q: %w", name, err)
 		}
@@ -898,12 +898,12 @@ func (b *Bridge) WebCommit(
 	// 2. Build tree entries: start from current HEAD tree, overlay new blobs
 	var entries []treeWriteEntry
 
-	currentCommitHash, _ := resolveRef(novaDir, branch)
+	currentCommitHash, _ := resolveRef(metaDir, branch)
 	if currentCommitHash != "" {
-		commitData, _, err := readObject(novaDir, currentCommitHash)
+		commitData, _, err := readObject(metaDir, currentCommitHash)
 		if err == nil {
 			if treeHash := parseCommitTreeHash(commitData); treeHash != "" {
-				existing, _ := readTreeEntries(novaDir, treeHash)
+				existing, _ := readTreeEntries(metaDir, treeHash)
 				for _, e := range existing {
 					if _, overwritten := blobHashes[e.Name]; !overwritten {
 						entries = append(entries, treeWriteEntry{
@@ -932,7 +932,7 @@ func (b *Bridge) WebCommit(
 	})
 
 	// 3. Write tree object
-	treeHash, err := writeTree(novaDir, entries)
+	treeHash, err := writeTree(metaDir, entries)
 	if err != nil {
 		return "", fmt.Errorf("write tree: %w", err)
 	}
@@ -951,7 +951,7 @@ func (b *Bridge) WebCommit(
 	commitBuf.WriteString(fmt.Sprintf("committer %s <%s> %d %s\n", authorName, authorEmail, ts, tz))
 	commitBuf.WriteString(fmt.Sprintf("\n%s\n", message))
 
-	commitHash, err := writeObject(novaDir, "commit", []byte(commitBuf.String()))
+	commitHash, err := writeObject(metaDir, "commit", []byte(commitBuf.String()))
 	if err != nil {
 		return "", fmt.Errorf("write commit: %w", err)
 	}
@@ -963,7 +963,7 @@ func (b *Bridge) WebCommit(
 	}
 
 	// Ensure HEAD points to this branch
-	headPath := filepath.Join(novaDir, "HEAD")
+	headPath := filepath.Join(metaDir, "HEAD")
 	if _, err := os.Stat(headPath); os.IsNotExist(err) {
 		_ = os.WriteFile(headPath, []byte("ref: refs/heads/"+branch+"\n"), 0o644)
 	} else {
