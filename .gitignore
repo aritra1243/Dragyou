@@ -10,6 +10,7 @@ backend/build/
 backend/hello-nova-test/
 backend/hello-nova-test2/
 *.exe
+!frontend/public/downloads/drag.exe
 *.dll
 *.obj
 *.lib
