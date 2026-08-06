@@ -42,6 +42,11 @@ type Config struct {
 
 	// CORS
 	AllowedOrigins []string
+
+	// Google OAuth
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURI  string
 }
 
 // DSN returns a PostgreSQL connection string.
@@ -101,6 +106,9 @@ func Load() *Config {
 		RateLimitAnon:   getEnvInt("RATE_LIMIT_ANON", 100),
 		RateLimitAuthed: getEnvInt("RATE_LIMIT_AUTHED", 1000),
 		AllowedOrigins:  parseCORSOrigins(getEnv("CORS_ORIGIN", "http://localhost:3000")),
+		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+		GoogleRedirectURI:  getEnv("GOOGLE_REDIRECT_URI", "http://localhost:8080/api/v1/auth/google/callback"),
 	}
 
 	if cfg.JWTSecret == "change-me-in-production-use-32+chars" && cfg.Env == "production" {
