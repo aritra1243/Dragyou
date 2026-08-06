@@ -293,15 +293,31 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
   const [error, setError]             = useState('');
   const [currentUser, setCurrentUser] = useState<{ username: string } | null>(null);
 
-  // Star state
+  // Star & Fork state
   const [starred, setStarred]   = useState(false);
   const [starCount, setStarCount] = useState(0);
   const [starring, setStarring]   = useState(false);
+  const [forking, setForking]     = useState(false);
 
   useEffect(() => {
     const u = localStorage.getItem('dragyou_user');
     if (u) try { setCurrentUser(JSON.parse(u)); } catch {}
   }, []);
+
+  const handleFork = async () => {
+    if (!currentUser) {
+      window.location.href = `/login?redirect=/repos/${owner}/${repo}`;
+      return;
+    }
+    setForking(true);
+    try {
+      const forkRes = await api.forkRepo(owner, repo);
+      window.location.href = `/repos/${forkRes.full_name}`;
+    } catch (err: any) {
+      alert(err.message || 'Failed to fork repository');
+      setForking(false);
+    }
+  };
 
   // Load star status
   useEffect(() => {
@@ -419,11 +435,16 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
                 }`}>
                   {repository?.visibility || '…'}
                 </span>
+                {repository?.is_fork && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    FORK
+                  </span>
+                )}
               </div>
               {repository?.description && (
                 <p className="text-gray-400 text-xs">{repository.description}</p>
               )}
-              <div className="flex items-center gap-4 pt-1 text-xs text-gray-500 font-mono">
+              <div className="flex items-center gap-3 pt-1 text-xs text-gray-500 font-mono flex-wrap">
                 <button
                   onClick={handleToggleStar}
                   disabled={starring}
@@ -441,7 +462,19 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
                   </span>
                 </button>
 
-                <span className="flex items-center gap-1"><GitFork size={11} className="text-blue-400" /> {repository?.fork_count ?? 0} forks</span>
+                <button
+                  onClick={handleFork}
+                  disabled={forking}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono bg-gray-900/80 border-gray-800 text-gray-400 hover:text-blue-300 hover:border-blue-500/30 transition-all cursor-pointer disabled:opacity-50"
+                  title="Fork this repository into your account"
+                >
+                  <GitFork size={12} className="text-blue-400" />
+                  <span>{forking ? 'Forking...' : 'Fork'}</span>
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded bg-gray-800/90 text-[11px] font-bold text-gray-300">
+                    {repository?.fork_count ?? 0}
+                  </span>
+                </button>
+
                 <span className="flex items-center gap-1"><GitCommit size={11} className="text-purple-400" /> {commits.length} commits</span>
               </div>
             </div>
@@ -676,7 +709,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
             </div>
 
             {/* ── Drop Zone ────────────────────────────── */}
-            {currentUser && owner === currentUser.username && (
+            {(repository?.permissions?.push ?? (currentUser && owner === currentUser.username)) ? (
               <DropZone
                 owner={owner}
                 repo={repo}
@@ -686,7 +719,21 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
                   api.getCommits(owner, repo, 20).then(d => setCommits(d.commits || []));
                 }}
               />
-            )}
+            ) : currentUser ? (
+              <div className="p-4 rounded-xl border border-gray-800/80 bg-gray-950/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-gray-400">
+                <div className="flex items-center gap-2">
+                  <GitFork size={15} className="text-blue-400 shrink-0" />
+                  <span>You have read access to @{owner}/{repo}. Click Fork to copy this repository to your account and submit Pull Requests.</span>
+                </div>
+                <button
+                  onClick={handleFork}
+                  disabled={forking}
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors shrink-0"
+                >
+                  {forking ? 'Forking...' : 'Fork Repository'}
+                </button>
+              </div>
+            ) : null}
           </div>
 
         /* ── COMMITS TAB ──────────────────────────────────────── */

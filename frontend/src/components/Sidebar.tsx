@@ -4,16 +4,44 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Code, GitCommit, GitBranch, GitPullRequest, AlertCircle, Settings } from 'lucide-react';
-import { getCloneUrl } from '@/lib/api';
+import { api, getCloneUrl } from '@/lib/api';
 
 interface SidebarProps {
   owner: string;
   repo: string;
+  isAdmin?: boolean;
 }
 
-export default function Sidebar({ owner, repo }: SidebarProps) {
+export default function Sidebar({ owner, repo, isAdmin }: SidebarProps) {
   const pathname = usePathname();
   const basePath = `/repos/${owner}/${repo}`;
+
+  const [hasAdmin, setHasAdmin] = React.useState<boolean>(isAdmin ?? false);
+
+  React.useEffect(() => {
+    if (isAdmin !== undefined) {
+      setHasAdmin(isAdmin);
+      return;
+    }
+
+    const savedUser = localStorage.getItem('dragyou_user');
+    let username = '';
+    if (savedUser) {
+      try { username = JSON.parse(savedUser).username; } catch (e) {}
+    }
+    if (username === owner) {
+      setHasAdmin(true);
+      return;
+    }
+
+    api.getRepo(owner, repo)
+      .then((data) => {
+        setHasAdmin(data.permissions?.admin ?? (data.owner?.username === username || owner === username));
+      })
+      .catch(() => {
+        setHasAdmin(owner === username);
+      });
+  }, [owner, repo, isAdmin]);
 
   const navItems = [
     { label: 'Code', href: basePath, icon: Code, exact: true },
@@ -21,7 +49,7 @@ export default function Sidebar({ owner, repo }: SidebarProps) {
     { label: 'Branches', href: `${basePath}/branches`, icon: GitBranch },
     { label: 'Pull Requests', href: `${basePath}/pulls`, icon: GitPullRequest },
     { label: 'Issues', href: `${basePath}/issues`, icon: AlertCircle },
-    { label: 'Settings', href: `${basePath}/settings`, icon: Settings },
+    ...(hasAdmin ? [{ label: 'Settings', href: `${basePath}/settings`, icon: Settings }] : []),
   ];
 
   return (

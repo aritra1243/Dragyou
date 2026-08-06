@@ -31,10 +31,17 @@ type createRepoRequest struct {
 	IsTemplate    bool             `json:"is_template"`
 }
 
+type RepoPermissions struct {
+	Admin bool `json:"admin"`
+	Push  bool `json:"push"`
+	Pull  bool `json:"pull"`
+}
+
 type repoResponse struct {
 	models.Repository
-	CloneURL string `json:"clone_url"`
-	SSHURL   string `json:"ssh_url"`
+	CloneURL    string          `json:"clone_url"`
+	SSHURL      string          `json:"ssh_url"`
+	Permissions RepoPermissions `json:"permissions"`
 }
 
 // ── Handlers ───────────────────────────────────────────────────────────────
@@ -773,10 +780,38 @@ func (h *Handler) loadRepo(w http.ResponseWriter, r *http.Request) (*models.Repo
 
 func (h *Handler) toRepoResponse(r *http.Request, repo *models.Repository) repoResponse {
 	host := r.Host
+	uid := middleware.GetUserID(r)
+
+	perms := RepoPermissions{
+		Admin: false,
+		Push:  false,
+		Pull:  repo.Visibility == models.VisibilityPublic,
+	}
+
+	if uid != 0 {
+		if uid == repo.OwnerID {
+			perms.Admin = true
+			perms.Push = true
+			perms.Pull = true
+		} else {
+			var member models.RepositoryMember
+			if err := h.db.Where("repository_id = ? AND user_id = ?", repo.ID, uid).First(&member).Error; err == nil {
+				perms.Pull = true
+				if member.Role == models.RoleOwner || member.Role == models.RoleAdmin {
+					perms.Admin = true
+					perms.Push = true
+				} else if member.Role == models.RoleWrite || member.Role == models.RoleMaintainer {
+					perms.Push = true
+				}
+			}
+		}
+	}
+
 	return repoResponse{
-		Repository: *repo,
-		CloneURL:   fmt.Sprintf("http://%s/api/v1/repos/%s.nova", host, repo.FullName),
-		SSHURL:     fmt.Sprintf("nova@%s:%s.nova", host, repo.FullName),
+		Repository:  *repo,
+		CloneURL:    fmt.Sprintf("http://%s/api/v1/repos/%s.nova", host, repo.FullName),
+		SSHURL:      fmt.Sprintf("nova@%s:%s.nova", host, repo.FullName),
+		Permissions: perms,
 	}
 }
 
@@ -863,6 +898,71 @@ func (h *Handler) GetStarStatus(w http.ResponseWriter, r *http.Request) {
 		"starred":    starred,
 		"star_count": repo.StarCount,
 	})
+}
+
+// POST /api/v1/repos/{owner}/{repo}/fork
+func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
+	uid := middleware.GetUserID(r)
+	if uid == 0 {
+		respondError(w, http.StatusUnauthorized, "unauthorized", "Authentication required to fork repository")
+		return
+	}
+
+	sourceRepo, ok := h.loadRepo(w, r)
+	if !ok {
+		return
+	}
+
+	var user models.User
+	if err := h.db.First(&user, uid).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "User not found")
+		return
+	}
+
+	targetName := sourceRepo.Name
+	fullName := user.Username + "/" + targetName
+
+	// If fork already exists under user namespace
+	var existing models.Repository
+	if err := h.db.Where("full_name = ?", fullName).First(&existing).Error; err == nil {
+		// Return existing fork
+		respondJSON(w, http.StatusOK, h.toRepoResponse(r, &existing))
+		return
+	}
+
+	storagePath := h.engine.RepoPath(user.Username, targetName)
+	if err := h.engine.InitRepo(storagePath); err != nil {
+		respondError(w, http.StatusInternalServerError, "engine_error", fmt.Sprintf("Could not initialize fork: %v", err))
+		return
+	}
+
+	forkRepo := models.Repository{
+		OwnerID:       uid,
+		Name:          targetName,
+		FullName:      fullName,
+		Description:   fmt.Sprintf("Forked from %s", sourceRepo.FullName),
+		Visibility:    models.VisibilityPublic,
+		DefaultBranch: sourceRepo.DefaultBranch,
+		StoragePath:   storagePath,
+		IsFork:        true,
+		ForkedFromID:  &sourceRepo.ID,
+	}
+
+	if err := h.db.Create(&forkRepo).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "db_error", "Could not create fork repository")
+		return
+	}
+
+	h.db.Create(&models.RepositoryMember{
+		RepositoryID: forkRepo.ID,
+		UserID:       uid,
+		Role:         models.RoleOwner,
+	})
+
+	h.db.Model(sourceRepo).UpdateColumn("fork_count", gorm.Expr("fork_count + 1"))
+	sourceRepo.ForkCount++
+
+	respondJSON(w, http.StatusCreated, h.toRepoResponse(r, &forkRepo))
 }
 
 // ── Date formatting helper ────────────────────────────────────────────────

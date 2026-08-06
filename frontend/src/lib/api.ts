@@ -34,6 +34,12 @@ export interface User {
   created_at: string;
 }
 
+export interface RepoPermissions {
+  admin: boolean;
+  push: boolean;
+  pull: boolean;
+}
+
 export interface Repository {
   id: number;
   owner_id: number;
@@ -45,10 +51,13 @@ export interface Repository {
   default_branch: string;
   star_count: number;
   fork_count: number;
+  is_fork?: boolean;
+  forked_from_id?: number;
   created_at: string;
   updated_at: string;
   clone_url: string;
   ssh_url: string;
+  permissions?: RepoPermissions;
 }
 
 export interface Commit {
@@ -158,10 +167,11 @@ export const api = {
   createRepo: (data: any) => fetcher<Repository>('/repos', { method: 'POST', body: JSON.stringify(data) }),
   deleteRepo: (owner: string, repo: string) => fetcher<{ message: string }>(repoPath(owner, repo), { method: 'DELETE' }),
 
-  // Star
+  // Star & Fork
   getStarStatus: (owner: string, repo: string) => fetcher<{ starred: boolean; star_count: number }>(`${repoPath(owner, repo)}/star`),
   starRepo: (owner: string, repo: string) => fetcher<{ message: string; starred: boolean; star_count: number }>(`${repoPath(owner, repo)}/star`, { method: 'POST' }),
   unstarRepo: (owner: string, repo: string) => fetcher<{ message: string; starred: boolean; star_count: number }>(`${repoPath(owner, repo)}/star`, { method: 'DELETE' }),
+  forkRepo: (owner: string, repo: string) => fetcher<Repository>(`${repoPath(owner, repo)}/fork`, { method: 'POST' }),
 
   // VCS
   getCommits: (owner: string, repo: string, max = 30) => fetcher<{ commits: Commit[]; repo: string }>(`${repoPath(owner, repo)}/commits?max=${max}`),

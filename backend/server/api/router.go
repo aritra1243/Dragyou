@@ -96,10 +96,11 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 				r.Get("/tree/{ref}/*", h.GetTree)
 				r.Get("/blob/{ref}/*", h.GetBlob)
 
-				// Star
+				// Star & Fork
 				r.Get("/star", h.GetStarStatus)
 				r.With(mw.Auth(cfg.JWTSecret)).Post("/star", h.StarRepo)
 				r.With(mw.Auth(cfg.JWTSecret)).Delete("/star", h.UnstarRepo)
+				r.With(mw.Auth(cfg.JWTSecret)).Post("/fork", h.ForkRepo)
 
 				// Collaborators
 				r.Route("/collaborators", func(r chi.Router) {

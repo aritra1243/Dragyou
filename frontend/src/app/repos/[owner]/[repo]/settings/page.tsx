@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { api, Collaborator } from '@/lib/api';
-import { Settings, Trash2, Shield, Users, UserPlus, UserX } from 'lucide-react';
+import Link from 'next/link';
+import { Settings, Trash2, Shield, Users, UserPlus, UserX, ShieldAlert, Lock, ArrowLeft } from 'lucide-react';
 
 interface Props {
   params: { owner: string; repo: string };
@@ -13,6 +14,8 @@ export default function SettingsPage({ params }: Props) {
   const { owner, repo } = params;
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Collaborators state
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -35,7 +38,24 @@ export default function SettingsPage({ params }: Props) {
   };
 
   useEffect(() => {
-    loadCollaborators();
+    setCheckingAuth(true);
+    const savedUser = localStorage.getItem('dragyou_user');
+    let username = '';
+    if (savedUser) {
+      try { username = JSON.parse(savedUser).username; } catch (e) {}
+    }
+
+    api.getRepo(owner, repo)
+      .then((data) => {
+        const canAdmin = data.permissions?.admin ?? (data.owner?.username === username || owner === username);
+        setIsAdmin(canAdmin);
+        if (canAdmin) loadCollaborators();
+      })
+      .catch(() => {
+        setIsAdmin(owner === username);
+        if (owner === username) loadCollaborators();
+      })
+      .finally(() => setCheckingAuth(false));
   }, [owner, repo]);
 
   // Live user search autocomplete effect
@@ -107,9 +127,54 @@ export default function SettingsPage({ params }: Props) {
     }
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-140px)]">
+        <Sidebar owner={owner} repo={repo} isAdmin={false} />
+        <div className="flex-1 p-12 text-center text-gray-500 font-mono text-xs">
+          Checking repository permissions...
+        </div>
+      </div>
+    );
+  }
+
+  if (isAdmin === false) {
+    return (
+      <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-140px)]">
+        <Sidebar owner={owner} repo={repo} isAdmin={false} />
+        <div className="flex-1 space-y-6">
+          <div className="glass-panel p-8 sm:p-12 rounded-3xl border border-amber-500/20 text-center space-y-5 shadow-2xl max-w-2xl mx-auto my-8">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+              <ShieldAlert size={32} />
+            </div>
+
+            <div className="space-y-2">
+              <h1 className="text-xl font-bold text-gray-100">Access Restricted: Settings Unavailable</h1>
+              <p className="text-xs text-gray-400 font-mono leading-relaxed max-w-lg mx-auto">
+                You are currently a <span className="text-amber-400 font-bold uppercase">Write Collaborator</span> on repository <span className="text-blue-400">@{owner}/{repo}</span>.
+              </p>
+              <p className="text-xs text-gray-400 leading-relaxed max-w-lg mx-auto">
+                In accordance with GitHub permission roles, Write collaborators can push commits, manage branches, and open pull requests, but repository settings, member role administration, and repository deletion are strictly reserved for Repository Owners & Administrators.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <Link
+                href={`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md active:scale-95"
+              >
+                <ArrowLeft size={15} /> Return to Code Repository
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-140px)]">
-      <Sidebar owner={owner} repo={repo} />
+      <Sidebar owner={owner} repo={repo} isAdmin={true} />
 
       <div className="flex-1 space-y-6">
         <div className="flex items-center justify-between pb-4 border-b border-gray-800">
