@@ -101,7 +101,7 @@ function ReposContent() {
   const copyClone = (repoFullName: string, id: number) => {
     const parts = repoFullName.split('/');
     const url = getCloneUrl(parts[0] || '', parts[1] || repoFullName);
-    navigator.clipboard.writeText(`nova clone ${url}`);
+    navigator.clipboard.writeText(`drag clone ${url}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -245,7 +245,7 @@ function ReposContent() {
         <div className="p-12 text-center glass-panel rounded-2xl space-y-3 border border-gray-800/80">
           <FolderGit2 className="mx-auto text-gray-600" size={32} />
           <p className="text-gray-300 text-sm font-semibold">No repositories found</p>
-          <p className="text-gray-500 text-xs font-mono">Create your first repository using the button above or push via nova CLI.</p>
+          <p className="text-gray-500 text-xs font-mono">Create your first repository using the button above or push via drag CLI.</p>
           <button
             onClick={handleCreateClick}
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-500 transition-colors mt-2"

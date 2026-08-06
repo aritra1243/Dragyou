@@ -18,14 +18,14 @@ function TerminalDemo() {
   const tabs = {
     init: {
       title: '1. Initialize & Authenticate',
-      cmd: 'nova init\nnova login http://localhost:8080',
-      output: `Initialized empty Dragyou repository in .nova/
+      cmd: 'drag init\ndrag login http://localhost:8080',
+      output: `Initialized empty Dragyou repository in .drag/
 Logging in to http://localhost:8080...
 ✓ Logged in as developer on http://localhost:8080`,
     },
     commit: {
       title: '2. Stage & Create SHA-256 Commit',
-      cmd: 'nova add .\nnova commit -m "initial commit"',
+      cmd: 'drag add .\ndrag commit -m "initial commit"',
       output: `staged: README.md (blob 100644)
 staged: main.py (blob 100644)
 [main fe132af9] initial commit
@@ -33,7 +33,7 @@ staged: main.py (blob 100644)
     },
     push: {
       title: '3. Push Pack over DNYPACK Protocol',
-      cmd: 'nova remote add origin http://localhost:8080/api/v1/repos/workspace/my-repo\nnova push origin main',
+      cmd: 'drag remote add origin http://localhost:8080/api/v1/repos/workspace/my-repo\ndrag push origin main',
       output: `Negotiating with http://localhost:8080/api/v1/repos/workspace/my-repo...
 Objects to upload: 4
 Uploading pack (0 KB)...
@@ -58,7 +58,7 @@ Uploading pack (0 KB)...
           <div className="w-3 h-3 rounded-full bg-red-500/80" />
           <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
           <div className="w-3 h-3 rounded-full bg-green-500/80" />
-          <span className="text-[11px] font-mono text-gray-400 ml-2">nova shell v0.1.0</span>
+          <span className="text-[11px] font-mono text-gray-400 ml-2">drag shell v0.1.0</span>
         </div>
         <button
           onClick={handleCopy}
@@ -172,7 +172,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <Terminal size={16} className="text-blue-400" />
-              <span className="text-xs font-bold font-mono text-gray-200">Nova CLI Execution Simulator</span>
+              <span className="text-xs font-bold font-mono text-gray-200">Drag CLI Execution Simulator</span>
             </div>
             <span className="text-[11px] font-mono text-gray-500">C++20 Engine v0.1.0</span>
           </div>
@@ -275,7 +275,7 @@ export default function Dashboard() {
             Ready to experience high-speed version control?
           </h2>
           <p className="text-xs sm:text-sm text-gray-400 max-w-xl mx-auto leading-relaxed">
-            Create your account to start initializing repositories, creating commits, and streaming packfiles over the nova CLI.
+            Create your account to start initializing repositories, creating commits, and streaming packfiles over the drag CLI.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
@@ -394,7 +394,7 @@ export default function Dashboard() {
             <FolderGit2 size={32} className="mx-auto text-gray-600" />
             <p className="text-gray-300 text-sm font-semibold">No personal repositories created yet</p>
             <p className="text-gray-500 text-xs font-mono max-w-md mx-auto">
-              Create your first repository using the button below or push via nova CLI.
+              Create your first repository using the button below or push via drag CLI.
             </p>
             <Link
               href="/repos?new=true"
@@ -406,7 +406,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {myRepos.map((repo) => {
-              const cloneCmd = `nova clone http://localhost:8080/api/v1/repos/${repo.full_name}`;
+              const cloneCmd = `drag clone http://localhost:8080/api/v1/repos/${repo.full_name}`;
               return (
                 <div
                   key={repo.id}
@@ -482,7 +482,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {exploreRepos.map((repo) => {
-              const cloneCmd = `nova clone http://localhost:8080/api/v1/repos/${repo.full_name}`;
+              const cloneCmd = `drag clone http://localhost:8080/api/v1/repos/${repo.full_name}`;
               const ownerName = repo.full_name.split('/')[0] || 'unknown';
               return (
                 <div
@@ -547,39 +547,39 @@ export default function Dashboard() {
         <div className="flex items-center justify-between border-b border-gray-800/80 pb-3">
           <div className="flex items-center gap-2">
             <Terminal className="text-blue-400" size={18} />
-            <h2 className="text-sm font-bold text-gray-100 font-mono">Nova CLI Quick Reference</h2>
+            <h2 className="text-sm font-bold text-gray-100 font-mono">Drag CLI Quick Reference</h2>
           </div>
           <span className="text-[11px] font-mono text-gray-500">C++20 Wire Protocol v1</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 font-mono text-xs">
           <div className="bg-gray-950/80 p-3.5 rounded-xl border border-gray-800/80 space-y-1.5">
-            <div className="text-blue-400 font-semibold">$ nova init</div>
-            <div className="text-gray-400 text-[11px]">Initialize .nova/ skeleton in directory</div>
+            <div className="text-blue-400 font-semibold">$ drag init</div>
+            <div className="text-gray-400 text-[11px]">Initialize .drag/ skeleton in directory</div>
           </div>
 
           <div className="bg-gray-950/80 p-3.5 rounded-xl border border-gray-800/80 space-y-1.5">
-            <div className="text-blue-400 font-semibold">$ nova add .</div>
+            <div className="text-blue-400 font-semibold">$ drag add .</div>
             <div className="text-gray-400 text-[11px]">Stage modified files into binary index</div>
           </div>
 
           <div className="bg-gray-950/80 p-3.5 rounded-xl border border-gray-800/80 space-y-1.5">
-            <div className="text-blue-400 font-semibold">$ nova commit -m "msg"</div>
+            <div className="text-blue-400 font-semibold">$ drag commit -m "msg"</div>
             <div className="text-gray-400 text-[11px]">Construct SHA-256 commit & tree objects</div>
           </div>
 
           <div className="bg-gray-950/80 p-3.5 rounded-xl border border-gray-800/80 space-y-1.5">
-            <div className="text-blue-400 font-semibold">$ nova login http://localhost:8080</div>
+            <div className="text-blue-400 font-semibold">$ drag login http://localhost:8080</div>
             <div className="text-gray-400 text-[11px]">Authenticate & save JWT credential token</div>
           </div>
 
           <div className="bg-gray-950/80 p-3.5 rounded-xl border border-gray-800/80 space-y-1.5">
-            <div className="text-blue-400 font-semibold">$ nova push origin main</div>
+            <div className="text-blue-400 font-semibold">$ drag push origin main</div>
             <div className="text-gray-400 text-[11px]">Negotiate missing objects & stream DNYPACK</div>
           </div>
 
           <div className="bg-gray-950/80 p-3.5 rounded-xl border border-gray-800/80 space-y-1.5">
-            <div className="text-blue-400 font-semibold">$ nova clone &lt;url&gt;</div>
+            <div className="text-blue-400 font-semibold">$ drag clone &lt;url&gt;</div>
             <div className="text-gray-400 text-[11px]">Clone repository metadata and tree</div>
           </div>
         </div>

@@ -192,10 +192,14 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"message": "logged out"})
 }
 
-// GET /api/v1/download/nova
-func (h *Handler) DownloadNovaClient(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Disposition", "attachment; filename=\"nova.exe\"")
-	http.ServeFile(w, r, h.cfg.NovaBin)
+// GET /api/v1/download/drag
+func (h *Handler) DownloadDragClient(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Disposition", "attachment; filename=\"drag.exe\"")
+	binPath := h.cfg.DragBin
+	if binPath == "" {
+		binPath = h.cfg.NovaBin
+	}
+	http.ServeFile(w, r, binPath)
 }
 
 // ── Token helpers ─────────────────────────────────────────────────────────

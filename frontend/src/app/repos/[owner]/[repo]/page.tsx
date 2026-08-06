@@ -266,7 +266,7 @@ function Sidebar({ owner, repo }: { owner: string; repo: string }) {
       <div className="rounded-xl border border-gray-800/80 bg-gray-950/60 p-3 space-y-2">
         <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500">Clone</p>
         <code className="block text-[10px] font-mono text-blue-400 break-all leading-relaxed select-all">
-          nova clone {getCloneUrl(owner, repo)}
+          drag clone {getCloneUrl(owner, repo)}
         </code>
       </div>
     </aside>
@@ -391,7 +391,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
   }, [owner, repo, selectedBranch, currentPath, viewMode, loadTree]);
 
   const copyClone = () => {
-    navigator.clipboard.writeText(`nova clone ${getCloneUrl(owner, repo)}`);
+    navigator.clipboard.writeText(`drag clone ${getCloneUrl(owner, repo)}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -498,7 +498,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
               <button onClick={copyClone}
                 className="flex items-center gap-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs font-mono px-3 py-1.5 rounded-lg transition-all active:scale-95">
                 <Terminal size={13} />
-                nova clone
+                drag clone
                 {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} className="text-gray-400" />}
               </button>
             </div>
@@ -653,7 +653,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
                 <div className="p-12 text-center bg-gray-950/40">
                   <Folder size={32} className="mx-auto mb-3 text-gray-700" />
                   <p className="text-gray-400 text-sm font-semibold">Directory is empty</p>
-                  <p className="text-gray-600 text-xs mt-1 font-mono">Push files using: <span className="text-blue-400">nova push origin main</span></p>
+                  <p className="text-gray-600 text-xs mt-1 font-mono">Push files using: <span className="text-blue-400">drag push origin main</span></p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-800/60 bg-gray-950/20">
@@ -743,7 +743,7 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
               <div className="p-12 text-center rounded-2xl border border-gray-800 bg-gray-950/40">
                 <GitCommit size={32} className="mx-auto mb-3 text-gray-700" />
                 <p className="text-gray-400 text-sm font-semibold">No commits yet</p>
-                <p className="text-gray-600 text-xs mt-1 font-mono">nova commit -m "your message"</p>
+                <p className="text-gray-600 text-xs mt-1 font-mono">drag commit -m "your message"</p>
               </div>
             ) : commits.map((commit, idx) => (
               <div key={commit.hash}

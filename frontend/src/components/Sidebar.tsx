@@ -93,7 +93,7 @@ export default function Sidebar({ owner, repo, isAdmin }: SidebarProps) {
           <div className="mt-2 space-y-2 text-[11px] font-mono bg-gray-900/90 p-3 rounded-xl border border-gray-800/80">
             <div className="text-gray-400"># Clone repo</div>
             <div className="text-blue-400 select-all overflow-x-auto whitespace-nowrap">
-              nova clone {getCloneUrl(owner, repo)}
+              drag clone {getCloneUrl(owner, repo)}
             </div>
           </div>
         </div>

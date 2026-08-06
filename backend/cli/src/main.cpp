@@ -1,5 +1,5 @@
 // =============================================================================
-//  Dragyou VCS — nova CLI entry point
+//  Dragyou VCS — drag CLI entry point
 // =============================================================================
 
 #include <cstring>
@@ -25,9 +25,9 @@ int cmd_login   (int argc, char** argv);
 
 static void print_usage() {
     std::cout << R"(
-Nova - Dragyou Version Control System
+Drag - Dragyou Version Control System
 
-Usage: nova <command> [options]
+Usage: drag <command> [options]
 
 Local Commands:
   init                  Initialize a new repository in the current directory
@@ -56,20 +56,20 @@ Options:
   --version             Show version information
 
 Examples:
-  nova init
-  nova add src/main.cpp
-  nova commit -m "initial commit"
-  nova login https://dragyou.io
-  nova remote add origin https://dragyou.io/alice/myrepo
-  nova push origin main
-  nova pull origin main
-  nova clone https://dragyou.io/alice/myrepo
-  nova clone --depth 1 https://dragyou.io/alice/huge-repo
+  drag init
+  drag add src/main.cpp
+  drag commit -m "initial commit"
+  drag login https://dragyou.io
+  drag remote add origin https://dragyou.io/alice/myrepo
+  drag push origin main
+  drag pull origin main
+  drag clone https://dragyou.io/alice/myrepo
+  drag clone --depth 1 https://dragyou.io/alice/huge-repo
 )" << '\n';
 }
 
 static void print_version() {
-    std::cout << "nova version 0.1.0 (Dragyou VCS)\n";
+    std::cout << "drag version 0.1.0 (Dragyou VCS)\n";
     std::cout << "Built with C++20, SHA-256, zlib compression\n";
     std::cout << "Remote protocol: object negotiation pack v1\n";
 }
@@ -103,8 +103,8 @@ int main(int argc, char** argv) {
     if (cmd == "pull")     return cmd_pull    (argc - 1, argv + 1);
     if (cmd == "clone")    return cmd_clone   (argc - 1, argv + 1);
 
-    std::cerr << "nova: unknown command '" << cmd << "'\n";
-    std::cerr << "Run 'nova --help' for usage.\n";
+    std::cerr << "drag: unknown command '" << cmd << "'\n";
+    std::cerr << "Run 'drag --help' for usage.\n";
     return 1;
 }
 

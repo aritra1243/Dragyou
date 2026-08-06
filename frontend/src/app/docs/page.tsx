@@ -42,7 +42,7 @@ export default function DocumentationPage() {
 
   const sections = [
     { id: 'quickstart', label: 'Quick Start Guide', icon: Play },
-    { id: 'cli', label: 'Nova CLI Reference', icon: Terminal },
+    { id: 'cli', label: 'Drag CLI Reference', icon: Terminal },
     { id: 'architecture', label: 'System Architecture', icon: Cpu },
     { id: 'api', label: 'REST API & Auth', icon: Server },
   ] as const;
@@ -59,14 +59,14 @@ export default function DocumentationPage() {
         </h1>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
           <p className="text-gray-400 text-xs sm:text-sm max-w-2xl leading-relaxed">
-            Comprehensive guides and reference manual for nova CLI commands, C++ engine storage model, binary packfile protocol, and Go REST API endpoints.
+            Comprehensive guides and reference manual for drag CLI commands, C++ engine storage model, binary packfile protocol, and Go REST API endpoints.
           </p>
           <a
-            href="/downloads/nova.exe"
-            download="nova.exe"
+            href="/downloads/drag.exe"
+            download="drag.exe"
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs font-mono shadow-lg shadow-blue-500/20 transition-all shrink-0 active:scale-95"
           >
-            <Terminal size={15} /> Download Nova CLI (nova.exe)
+            <Terminal size={15} /> Download Drag CLI (drag.exe)
           </a>
         </div>
       </section>
@@ -117,13 +117,13 @@ export default function DocumentationPage() {
               <div className="glass-card p-6 rounded-2xl space-y-3">
                 <div className="flex items-center gap-2 text-sm font-bold text-gray-200 font-mono">
                   <span className="w-6 h-6 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xs">1</span>
-                  Add nova CLI to your PATH
+                  Add drag CLI to your PATH
                 </div>
                 <p className="text-xs text-gray-400">
-                  First, ensure the compiled <code className="text-blue-400 font-mono">nova.exe</code> binary is in your terminal environment PATH:
+                  First, ensure the compiled <code className="text-blue-400 font-mono">drag.exe</code> binary is in your terminal environment PATH:
                 </p>
                 <CodeBlock code={`$env:PATH += ";D:\\Dragyou\\backend\\build\\bin\\Release"`} />
-                <p className="text-xs text-gray-500">Verify by running <code className="text-gray-300 font-mono">nova --version</code> in your shell.</p>
+                <p className="text-xs text-gray-500">Verify by running <code className="text-gray-300 font-mono">drag --version</code> in your shell.</p>
               </div>
 
               {/* Step 2 */}
@@ -153,13 +153,13 @@ Invoke-RestMethod -Uri "http://localhost:8080/api/v1/repos" \`
                   Initialize Local Repo & Authenticate CLI
                 </div>
                 <p className="text-xs text-gray-400">
-                  Navigate to your local code directory and initialize <code className="text-blue-400 font-mono">.nova/</code>:
+                  Navigate to your local code directory and initialize <code className="text-blue-400 font-mono">.drag/</code>:
                 </p>
                 <CodeBlock code={`mkdir D:\\my-project
 cd D:\\my-project
 
-nova init
-nova login http://localhost:8080
+drag init
+drag login http://localhost:8080
 # Enter your Username and Password when prompted`} />
               </div>
 
@@ -176,16 +176,16 @@ nova login http://localhost:8080
 "print('Hello, Dragyou!')" | Out-File main.py -Encoding utf8
 
 # Stage files
-nova add .
+drag add .
 
 # Create commit
-nova commit -m "initial commit"
+drag commit -m "initial commit"
 
 # Set remote server URL
-nova remote add origin http://localhost:8080/api/v1/repos/developer/my-project
+drag remote add origin http://localhost:8080/api/v1/repos/developer/my-project
 
 # Push commits & objects
-nova push origin main`} />
+drag push origin main`} />
                 <div className="flex items-center gap-2 text-xs text-emerald-400 font-mono pt-2">
                   <CheckCircle2 size={14} /> View your pushed files on the web dashboard at http://localhost:3000/repos/developer/my-project
                 </div>
@@ -198,7 +198,7 @@ nova push origin main`} />
             <div className="space-y-8 animate-fadeIn">
               <div className="border-b border-gray-800 pb-4">
                 <h2 className="text-2xl font-bold text-gray-100 flex items-center gap-2">
-                  <Terminal className="text-blue-400" size={24} /> Nova CLI Command Reference
+                  <Terminal className="text-blue-400" size={24} /> Drag CLI Command Reference
                 </h2>
                 <p className="text-gray-400 text-xs mt-1">Complete command-line interface specification for local and remote operations.</p>
               </div>
@@ -208,23 +208,23 @@ nova push origin main`} />
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova init [path]</code>
+                    <code className="text-sm font-bold text-white font-mono">drag init [path]</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Local</span>
                   </div>
-                  <p className="text-xs text-gray-400">Initializes an empty <code className="text-gray-300 font-mono">.nova/</code> directory skeleton with object store, refs, and default configuration.</p>
+                  <p className="text-xs text-gray-400">Initializes an empty <code className="text-gray-300 font-mono">.drag/</code> directory skeleton with object store, refs, and default configuration.</p>
                 </div>
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova add &lt;file...&gt;</code>
+                    <code className="text-sm font-bold text-white font-mono">drag add &lt;file...&gt;</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Local</span>
                   </div>
-                  <p className="text-xs text-gray-400">Stages target files into the binary staging index. Use <code className="text-gray-300 font-mono">nova add .</code> to stage all modified and untracked files recursively.</p>
+                  <p className="text-xs text-gray-400">Stages target files into the binary staging index. Use <code className="text-gray-300 font-mono">drag add .</code> to stage all modified and untracked files recursively.</p>
                 </div>
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova commit -m "&lt;message&gt;"</code>
+                    <code className="text-sm font-bold text-white font-mono">drag commit -m "&lt;message&gt;"</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Local</span>
                   </div>
                   <p className="text-xs text-gray-400">Creates a SHA-256 tree object from the staging index and constructs a new commit pointing to parent commits.</p>
@@ -232,7 +232,7 @@ nova push origin main`} />
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova status</code>
+                    <code className="text-sm font-bold text-white font-mono">drag status</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Local</span>
                   </div>
                   <p className="text-xs text-gray-400">Displays working directory status, comparing staged files against the HEAD commit and listing untracked files.</p>
@@ -240,7 +240,7 @@ nova push origin main`} />
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova log [--max &lt;n&gt;]</code>
+                    <code className="text-sm font-bold text-white font-mono">drag log [--max &lt;n&gt;]</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Local</span>
                   </div>
                   <p className="text-xs text-gray-400">Prints the commit log starting from current HEAD back to the root commit with full SHA-256 hashes and author signatures.</p>
@@ -252,23 +252,23 @@ nova push origin main`} />
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova login [server-url]</code>
+                    <code className="text-sm font-bold text-white font-mono">drag login [server-url]</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Remote</span>
                   </div>
-                  <p className="text-xs text-gray-400">Authenticates with a Dragyou server via JWT, saving credentials to <code className="text-gray-300 font-mono">~/.nova/credentials</code>.</p>
+                  <p className="text-xs text-gray-400">Authenticates with a Dragyou server via JWT, saving credentials to <code className="text-gray-300 font-mono">~/.drag/credentials</code>.</p>
                 </div>
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova remote add &lt;name&gt; &lt;url&gt;</code>
+                    <code className="text-sm font-bold text-white font-mono">drag remote add &lt;name&gt; &lt;url&gt;</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Remote</span>
                   </div>
-                  <p className="text-xs text-gray-400">Links a remote repository URL under an alias (e.g. <code className="text-gray-300 font-mono">origin</code>) inside <code className="text-gray-300 font-mono">.nova/config</code>.</p>
+                  <p className="text-xs text-gray-400">Links a remote repository URL under an alias (e.g. <code className="text-gray-300 font-mono">origin</code>) inside <code className="text-gray-300 font-mono">.drag/config</code>.</p>
                 </div>
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova push [&lt;remote&gt;] [&lt;branch&gt;]</code>
+                    <code className="text-sm font-bold text-white font-mono">drag push [&lt;remote&gt;] [&lt;branch&gt;]</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Remote</span>
                   </div>
                   <p className="text-xs text-gray-400">Negotiates missing objects with the server, serializes a binary <code className="text-gray-300 font-mono">DNYPACK</code> packfile, streams it, and updates the branch ref tip.</p>
@@ -276,7 +276,7 @@ nova push origin main`} />
 
                 <div className="glass-card p-5 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-bold text-white font-mono">nova clone [--depth n] &lt;url&gt;</code>
+                    <code className="text-sm font-bold text-white font-mono">drag clone [--depth n] &lt;url&gt;</code>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Remote</span>
                   </div>
                   <p className="text-xs text-gray-400">Clones a remote repository. Supports shallow/virtual clones by downloading metadata first and materializing file blobs on demand.</p>

@@ -33,7 +33,8 @@ type Config struct {
 	// Repository storage path (local disk for Phase 1)
 	RepoStoragePath string
 
-	// Nova CLI binary path (used by the engine bridge)
+	// Drag CLI binary path (used by the engine bridge)
+	DragBin string
 	NovaBin string
 
 	// Rate limiting (requests per minute)
@@ -97,7 +98,8 @@ func Load() *Config {
 		JWTExpiryMinutes:     getEnvInt("JWT_EXPIRY_MINUTES", 43200), // 30 days default for web app sessions
 		JWTRefreshExpiryDays: getEnvInt("JWT_REFRESH_EXPIRY_DAYS", 90),
 		RepoStoragePath: getEnv("REPO_STORAGE_PATH", "./repos"),
-		NovaBin:         getEnv("NOVA_BIN", ""),
+		DragBin:         getEnv("DRAG_BIN", getEnv("NOVA_BIN", "")),
+		NovaBin:         getEnv("NOVA_BIN", getEnv("DRAG_BIN", "")),
 		RateLimitAnon:   getEnvInt("RATE_LIMIT_ANON", 100),
 		RateLimitAuthed: getEnvInt("RATE_LIMIT_AUTHED", 1000),
 		AllowedOrigins:  parseCORSOrigins(getEnv("CORS_ORIGIN", "http://localhost:3000")),

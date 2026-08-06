@@ -11,7 +11,7 @@
                              │
             ┌────────────────┴────────────────┐
             ▼                                 ▼
-    React + Next.js Frontend             Nova C++ CLI
+    React + Next.js Frontend             Drag C++ CLI
    (Web Dashboard & Browser)          (Local VCS commands)
             │                                 │
             └────────────────┬────────────────┘
@@ -32,7 +32,7 @@
 
 - `backend/`
   - `engine/` — C++20 VCS Core (SHA-256 objects, Myers diff, 3-way merge, pack engine)
-  - `cli/` — C++ `nova` CLI executable (`init`, `add`, `commit`, `status`, `log`, `branch`, `checkout`, `diff`, `merge`, `remote`, `push`, `pull`, `clone`, `login`)
+  - `cli/` — C++ `drag` CLI executable (`init`, `add`, `commit`, `status`, `log`, `branch`, `checkout`, `diff`, `merge`, `remote`, `push`, `pull`, `clone`, `login`)
   - `server/` — Go Platform REST API backend (Chi router, JWT authentication, PostgreSQL, GORM, rate limiting, remote pack protocol)
 - `frontend/` — Next.js 14 (React, TypeScript, TailwindCSS, Lucide icons, glassmorphism dark UI)
 
@@ -48,7 +48,7 @@ cd d:\Dragyou\backend
 .\build.ps1
 ```
 
-The compiled `nova.exe` CLI binary will be located in `backend/build/bin/nova.exe`.
+The compiled `drag.exe` CLI binary will be located in `backend/build/bin/drag.exe`.
 
 ### 2. Start Go Server
 
@@ -73,33 +73,33 @@ The web dashboard is live at **http://localhost:3000**
 
 ---
 
-## 🧪 Testing Nova CLI
+## 🧪 Testing Drag CLI
 
 ```powershell
 # 1. Initialize a test repository
 mkdir d:\my-test-repo
 cd d:\my-test-repo
-nova init
+drag init
 
 # 2. Add and commit files
 echo "Hello Dragyou" > hello.txt
-nova add hello.txt
-nova commit -m "initial commit"
-nova status
-nova log
+drag add hello.txt
+drag commit -m "initial commit"
+drag status
+drag log
 
 # 3. Branch & merge
-nova branch dev
-nova checkout dev
+drag branch dev
+drag checkout dev
 echo "Feature work" > feature.txt
-nova add feature.txt
-nova commit -m "add feature"
-nova diff
-nova checkout main
-nova merge dev
+drag add feature.txt
+drag commit -m "add feature"
+drag diff
+drag checkout main
+drag merge dev
 
 # 4. Remote push & pull
-nova login http://localhost:8080
-nova remote add origin http://localhost:8080/api/v1/repos/alice/my-test-repo.nova
-nova push origin main
+drag login http://localhost:8080
+drag remote add origin http://localhost:8080/api/v1/repos/alice/my-test-repo
+drag push origin main
 ```
