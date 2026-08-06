@@ -26,6 +26,7 @@ int cmd_diff(int argc, char** argv) {
         if (arg == "--staged" || arg == "--cached") staged = true;
         else if (arg[0] != '-') specific_file = arg;
     }
+    (void)staged;
 
     auto repo_root = dragyou::Repository::discover();
     if (!repo_root) {

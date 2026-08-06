@@ -1,4 +1,4 @@
-# Stage 1: Build C++ Nova Engine
+# Stage 1: Build C++ Drag Engine
 FROM alpine:3.19 AS cpp-builder
 RUN apk add --no-cache build-base cmake zlib-dev curl-dev
 WORKDIR /app
@@ -16,11 +16,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o server .
 FROM alpine:3.19
 RUN apk add --no-cache ca-certificates zlib libstdc++ libgcc curl
 WORKDIR /app
-COPY --from=cpp-builder /app/build/bin/nova /app/nova
+COPY --from=cpp-builder /app/build/bin/drag /app/drag
 COPY --from=go-builder /app/server /app/server
 RUN mkdir -p /app/repos
 
-ENV NOVA_BIN=/app/nova
+ENV DRAG_BIN=/app/drag
 ENV REPO_STORAGE_ROOT=/app/repos
 ENV PORT=8080
 
