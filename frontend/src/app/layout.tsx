@@ -5,6 +5,14 @@ import Navbar from "@/components/Navbar";
 export const metadata: Metadata = {
   title: "Dragyou VCS — High Performance Monorepo Version Control",
   description: "Enterprise-grade distributed version control system with C++ engine, virtual clones, and Go platform backend.",
+  icons: {
+    icon: [
+      { url: '/logo.png' },
+      { url: '/icon.png' },
+    ],
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
