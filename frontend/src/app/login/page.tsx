@@ -43,9 +43,11 @@ function LoginContent() {
   return (
     <div className="max-w-md mx-auto my-12 space-y-6">
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 mx-auto font-bold text-xl glow-blue">
-          D
-        </div>
+        <img
+          src="/logo.png"
+          alt="Dragyou Logo"
+          className="w-12 h-12 rounded-2xl object-cover border border-blue-500/30 mx-auto shadow-lg shadow-blue-500/20 glow-blue"
+        />
         <h1 className="text-2xl font-bold text-gray-100">Sign in to Dragyou</h1>
         <p className="text-xs text-gray-400 font-mono">Access your repositories and collaborate</p>
       </div>

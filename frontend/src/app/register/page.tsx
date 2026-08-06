@@ -38,9 +38,11 @@ export default function RegisterPage() {
   return (
     <div className="max-w-md mx-auto my-10 space-y-6">
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto font-bold text-xl glow-purple">
-          D
-        </div>
+        <img
+          src="/logo.png"
+          alt="Dragyou Logo"
+          className="w-12 h-12 rounded-2xl object-cover border border-indigo-500/30 mx-auto shadow-lg shadow-indigo-500/20 glow-purple"
+        />
         <h1 className="text-2xl font-bold text-gray-100">Create Dragyou Account</h1>
         <p className="text-xs text-gray-400 font-mono">Join the enterprise version control platform</p>
       </div>

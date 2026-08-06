@@ -140,9 +140,11 @@ export default function Navbar() {
         {/* Brand Logo */}
         <div className="flex items-center gap-4 lg:gap-6">
           <Link href="/" className="flex items-center gap-2 group shrink-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              D
-            </div>
+            <img
+              src="/logo.png"
+              alt="Dragyou Logo"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform border border-blue-500/30"
+            />
             <div className="flex flex-col">
               <span className="font-bold text-base sm:text-lg text-gray-100 tracking-tight flex items-center gap-1.5">
                 Dragyou
