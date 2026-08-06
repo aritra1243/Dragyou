@@ -82,6 +82,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.PRReview{},
 		&models.Issue{},
 		&models.Webhook{},
+		&models.Notification{},
 	)
 	if err != nil {
 		// "relation already exists" means the schema is already current — not fatal.

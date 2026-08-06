@@ -422,8 +422,20 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 			UserID:       targetUser.ID,
 			Role:         req.Role,
 		}
-		h.db.Create(&member)
+	h.db.Create(&member)
 	}
+
+	var actor models.User
+	h.db.First(&actor, uid)
+	h.NotifyUser(
+		targetUser.ID,
+		uid,
+		&repo.ID,
+		models.NotificationCollaborator,
+		fmt.Sprintf("@%s added you as a %s collaborator on %s", actor.Username, req.Role, repo.FullName),
+		fmt.Sprintf("You now have '%s' access to repository %s.", req.Role, repo.FullName),
+		fmt.Sprintf("/repos/%s", repo.FullName),
+	)
 
 	respondJSON(w, http.StatusOK, map[string]any{
 		"message": "Collaborator updated successfully",
@@ -841,6 +853,18 @@ func (h *Handler) StarRepo(w http.ResponseWriter, r *http.Request) {
 
 		h.db.Model(repo).UpdateColumn("star_count", gorm.Expr("star_count + 1"))
 		repo.StarCount++
+
+		var actor models.User
+		h.db.First(&actor, uid)
+		h.NotifyUser(
+			repo.OwnerID,
+			uid,
+			&repo.ID,
+			models.NotificationStar,
+			fmt.Sprintf("@%s starred your repository %s", actor.Username, repo.FullName),
+			"",
+			fmt.Sprintf("/repos/%s", repo.FullName),
+		)
 	}
 
 	respondJSON(w, http.StatusOK, map[string]any{
@@ -961,6 +985,16 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 	h.db.Model(sourceRepo).UpdateColumn("fork_count", gorm.Expr("fork_count + 1"))
 	sourceRepo.ForkCount++
+
+	h.NotifyUser(
+		sourceRepo.OwnerID,
+		uid,
+		&sourceRepo.ID,
+		models.NotificationFork,
+		fmt.Sprintf("@%s forked your repository %s", user.Username, sourceRepo.FullName),
+		fmt.Sprintf("New fork created at %s.", forkRepo.FullName),
+		fmt.Sprintf("/repos/%s", forkRepo.FullName),
+	)
 
 	respondJSON(w, http.StatusCreated, h.toRepoResponse(r, &forkRepo))
 }

@@ -79,6 +79,15 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *chi.Mux {
 			r.Get("/{username}/repos", h.GetUserRepos)
 		})
 
+		// Notifications
+		r.Route("/notifications", func(r chi.Router) {
+			r.Use(mw.Auth(cfg.JWTSecret))
+			r.Get("/", h.ListNotifications)
+			r.Put("/{id}/read", h.MarkNotificationRead)
+			r.Put("/read-all", h.MarkAllNotificationsRead)
+			r.Delete("/{id}", h.DeleteNotification)
+		})
+
 		// Repositories
 		r.Route("/repos", func(r chi.Router) {
 			r.With(mw.Auth(cfg.JWTSecret)).Post("/", h.CreateRepo)

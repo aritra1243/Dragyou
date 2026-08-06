@@ -60,6 +60,21 @@ export interface Repository {
   permissions?: RepoPermissions;
 }
 
+export interface Notification {
+  id: number;
+  user_id: number;
+  actor_id: number;
+  actor?: User;
+  repository_id?: number;
+  repository?: Repository;
+  type: 'star' | 'fork' | 'collaborator' | 'push' | 'pull_request' | 'issue';
+  title: string;
+  message?: string;
+  link?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 export interface Commit {
   hash: string;
   message: string;
@@ -215,6 +230,16 @@ export const api = {
   closePullRequest: (owner: string, repo: string, id: number) => fetcher<{ message: string; pull_request: PullRequest }>(`${repoPath(owner, repo)}/pulls/${id}/close`, { method: 'POST' }),
   listIssues: (owner: string, repo: string) => fetcher<{ issues: Issue[] }>(`${repoPath(owner, repo)}/issues`),
   createIssue: (owner: string, repo: string, data: any) => fetcher<Issue>(`${repoPath(owner, repo)}/issues`, { method: 'POST', body: JSON.stringify(data) }),
+
+  // Notifications
+  listNotifications: (unreadOnly = false) =>
+    fetcher<{ notifications: Notification[]; unread_count: number }>(`/notifications${unreadOnly ? '?unread=true' : ''}`),
+  markNotificationRead: (id: number) =>
+    fetcher<{ message: string }>(`/notifications/${id}/read`, { method: 'PUT' }),
+  markAllNotificationsRead: () =>
+    fetcher<{ message: string }>('/notifications/read-all', { method: 'PUT' }),
+  deleteNotification: (id: number) =>
+    fetcher<{ message: string }>(`/notifications/${id}`, { method: 'DELETE' }),
 
   // Web upload — drag-and-drop commit
   uploadFiles: async (owner: string, repo: string, files: File[], message: string, branch: string): Promise<{ commit: string; files: number; branch: string; message: string }> => {
