@@ -407,7 +407,9 @@ function RepoDetailContent({ owner, repo }: { owner: string; repo: string }) {
           <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-gray-400 font-mono text-sm">{owner}</span>
+                <Link href={`/users/${encodeURIComponent(owner)}`} className="text-blue-400 hover:text-blue-300 hover:underline font-mono text-sm font-semibold">
+                  {owner}
+                </Link>
                 <span className="text-gray-600">/</span>
                 <span className="text-white font-bold font-mono text-lg">{repo}</span>
                 <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full border ${

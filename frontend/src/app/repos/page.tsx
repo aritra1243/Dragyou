@@ -13,6 +13,7 @@ function ReposContent() {
   const [repos, setRepos] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterScope, setFilterScope] = useState<'mine' | 'all'>('mine');
   const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'private'>('all');
   const [showModal, setShowModal] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
@@ -111,7 +112,11 @@ function ReposContent() {
       (r.description && r.description.toLowerCase().includes(search.toLowerCase()));
     const matchesVis =
       filterVisibility === 'all' || r.visibility === filterVisibility;
-    return matchesSearch && matchesVis;
+    const isMine = currentUser
+      ? (r.full_name.startsWith(`${currentUser.username}/`) || r.owner?.username === currentUser.username)
+      : false;
+    const matchesScope = filterScope === 'mine' ? isMine : true;
+    return matchesSearch && matchesVis && matchesScope;
   });
 
   // ── SIGNED OUT PROMPT CARD ────────────────────────────────────────────────
@@ -187,21 +192,47 @@ function ReposContent() {
           />
         </div>
 
-        {/* Filter Pills */}
-        <div className="repo-filter-pills flex items-center gap-1 bg-gray-950/80 border border-gray-800 p-1 rounded-xl w-fit text-xs font-mono">
-          {(['all', 'public', 'private'] as const).map((tab) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Scope Pills */}
+          <div className="repo-filter-pills flex items-center gap-1 bg-gray-950/80 border border-gray-800 p-1 rounded-xl w-fit text-xs font-mono">
             <button
-              key={tab}
-              onClick={() => setFilterVisibility(tab)}
-              className={`px-3 py-1 rounded-lg capitalize transition-colors ${
-                filterVisibility === tab
+              onClick={() => setFilterScope('mine')}
+              className={`px-3 py-1 rounded-lg transition-colors ${
+                filterScope === 'mine'
                   ? 'bg-blue-600 text-white font-semibold'
                   : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              {tab}
+              Your Repositories
             </button>
-          ))}
+            <button
+              onClick={() => setFilterScope('all')}
+              className={`px-3 py-1 rounded-lg transition-colors ${
+                filterScope === 'all'
+                  ? 'bg-blue-600 text-white font-semibold'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              All Repositories
+            </button>
+          </div>
+
+          {/* Visibility Pills */}
+          <div className="repo-filter-pills flex items-center gap-1 bg-gray-950/80 border border-gray-800 p-1 rounded-xl w-fit text-xs font-mono">
+            {(['all', 'public', 'private'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilterVisibility(tab)}
+                className={`px-3 py-1 rounded-lg capitalize transition-colors ${
+                  filterVisibility === tab
+                    ? 'bg-gray-800 text-blue-400 border border-blue-500/30 font-semibold'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

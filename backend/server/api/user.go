@@ -68,6 +68,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 // GET /api/v1/users/:username/repos
 func (h *Handler) GetUserRepos(w http.ResponseWriter, r *http.Request) {
 	username := cleanParam(chi.URLParam(r, "username"))
+	uid := middleware.GetUserID(r)
 
 	var user models.User
 	if err := h.db.Where("username = ?", username).First(&user).Error; err != nil {
@@ -76,11 +77,12 @@ func (h *Handler) GetUserRepos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var repos []models.Repository
-	h.db.Preload("Owner").
-		Where("owner_id = ? AND visibility = ?", user.ID, models.VisibilityPublic).
-		Order("updated_at DESC").
-		Limit(30).
-		Find(&repos)
+	q := h.db.Preload("Owner").Where("owner_id = ?", user.ID)
+	if uid != user.ID {
+		q = q.Where("visibility = ?", models.VisibilityPublic)
+	}
+
+	q.Order("updated_at DESC").Limit(50).Find(&repos)
 
 	items := make([]repoResponse, len(repos))
 	for i := range repos {
