@@ -108,7 +108,15 @@ func Load() *Config {
 		AllowedOrigins:  parseCORSOrigins(getEnv("CORS_ORIGIN", "http://localhost:3000")),
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
-		GoogleRedirectURI:  getEnv("GOOGLE_REDIRECT_URI", "http://localhost:8080/api/v1/auth/google/callback"),
+		GoogleRedirectURI:  getEnv("GOOGLE_REDIRECT_URI", ""),
+	}
+
+	if cfg.GoogleRedirectURI == "" {
+		if cfg.Env == "production" {
+			cfg.GoogleRedirectURI = "https://dragyou-backend.onrender.com/api/v1/auth/google/callback"
+		} else {
+			cfg.GoogleRedirectURI = "http://localhost:8080/api/v1/auth/google/callback"
+		}
 	}
 
 	if cfg.JWTSecret == "change-me-in-production-use-32+chars" && cfg.Env == "production" {
