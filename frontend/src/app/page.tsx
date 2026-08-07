@@ -9,6 +9,7 @@ import {
   CheckCircle2, Sparkles, Workflow, HardDrive, BarChart3
 } from 'lucide-react';
 import { api, Repository, User as UserType } from '@/lib/api';
+import VerticalFeatureShowcase from '@/components/VerticalFeatureShowcase';
 
 // Interactive Terminal Demo Component for Landing Page
 function TerminalDemo() {
@@ -100,167 +101,7 @@ Uploading pack (0 KB)...
   );
 }
 
-// Horizontal Scroll Feature Showcase Component
-function HorizontalFeatureShowcase() {
-  const scrollRef = React.useRef<HTMLDivElement>(null);
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = direction === 'left' ? -380 : 380;
-      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
-  const showcaseItems = [
-    {
-      id: 1,
-      badge: 'C++20 Engine',
-      badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-      title: 'Native SHA-256 Storage',
-      icon: Cpu,
-      description: 'Calculates 256-bit cryptographic tree hashes and zlib compressed blob objects at native C++ hardware speed.',
-      codeSnippet: '$ drag add .\n[BLOB 100644] e3b0c44298fc1c149afbf4c8996fb924',
-      bgGlow: 'from-blue-600/10 to-indigo-600/5',
-    },
-    {
-      id: 2,
-      badge: 'Monorepo Scale',
-      badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-      title: 'Virtual Shallow Clones',
-      icon: HardDrive,
-      description: 'Shallow materialization technology enables sub-second checkout of gigabyte repositories by pulling tree metadata first.',
-      codeSnippet: '$ drag clone --depth 1 https://dragyou.io/mono\n✓ Materialized 12,400 files in 48ms',
-      bgGlow: 'from-purple-600/10 to-pink-600/5',
-    },
-    {
-      id: 3,
-      badge: 'Wire Protocol',
-      badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      title: 'DNYPACK Packfile Streaming',
-      icon: Layers,
-      description: 'Binary packfile streaming over HTTP with custom magic header validation, delta compression, and sub-second object negotiation.',
-      codeSnippet: 'HEADER: DNYPACK v1.0 [DELTA_OBJECT_STREAM]\nStreaming 4.2 MB packfile (24ms)',
-      bgGlow: 'from-emerald-600/10 to-teal-600/5',
-    },
-    {
-      id: 4,
-      badge: 'Enterprise Security',
-      badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      title: 'Google & JWT OAuth 2.0',
-      icon: Shield,
-      description: 'Multi-layer security architecture featuring JWT bearer tokens, CORS protection, and one-click Google OAuth authentication.',
-      codeSnippet: 'AUTH: Bearer eyJhbGciOiJIUzI1Ni... (Active)\nOAuth 2.0 Provider: Google Cloud Verified',
-      bgGlow: 'from-amber-600/10 to-orange-600/5',
-    },
-    {
-      id: 5,
-      badge: 'Subprocess Bridge',
-      badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-      title: 'Go-to-C++ Engine IPC',
-      icon: Server,
-      description: 'Go Chi backend communicates with native C++ engine sub-processes over stdin/stdout IPC for instant disk object resolution.',
-      codeSnippet: 'Go API Handler -> C++ Subprocess IPC Bridge\nResponse Latency: 1.2ms [STATUS_OK]',
-      bgGlow: 'from-cyan-600/10 to-blue-600/5',
-    },
-    {
-      id: 6,
-      badge: 'Portable CLI',
-      badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-      title: 'Standalone drag.exe Distribution',
-      icon: Terminal,
-      description: 'Zero external runtime dependencies. Download drag.exe and run local or remote version control anywhere instantly.',
-      codeSnippet: '$ ./drag.exe --version\nDragyou VCS Client v0.1.0 (x86_64-pc-windows)',
-      bgGlow: 'from-indigo-600/10 to-purple-600/5',
-    },
-  ];
-
-  return (
-    <section className="space-y-6 pt-4">
-      {/* Section Header with Left/Right Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-mono font-medium">
-            <Sparkles size={13} /> Interactive Feature Tour
-          </div>
-          <h2 className="text-2xl font-bold text-gray-100 tracking-tight">
-            High-Performance Platform Capabilities
-          </h2>
-          <p className="text-xs text-gray-400 font-mono">
-            Scroll horizontally to explore architecture details, wire protocols, and CLI execution.
-          </p>
-        </div>
-
-        {/* Scroll Controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => scroll('left')}
-            className="p-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-800 transition-all active:scale-95 shadow-sm"
-            title="Scroll Left"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            onClick={() => scroll('right')}
-            className="p-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-800 transition-all active:scale-95 shadow-sm"
-            title="Scroll Right"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-
-      {/* Horizontal Scroll Track */}
-      <div
-        ref={scrollRef}
-        className="flex gap-5 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scrollbar-none"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {showcaseItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.id}
-              className={`snap-start shrink-0 w-[330px] sm:w-[360px] glass-panel p-6 rounded-2xl border border-gray-800 hover:border-gray-700 bg-gradient-to-b ${item.bgGlow} transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between space-y-5 shadow-xl`}
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-gray-900/80 border border-gray-800 flex items-center justify-center text-blue-400 shadow-inner">
-                    <Icon size={20} />
-                  </div>
-                  <span className={`text-[10px] font-mono px-2.5 py-1 rounded-md font-semibold border ${item.badgeColor}`}>
-                    {item.badge}
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <h3 className="text-base font-bold text-gray-100 tracking-tight">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* Terminal Code Snippet Preview */}
-              <div className="rounded-xl bg-gray-950/90 border border-gray-800/80 p-3 font-mono text-[11px] text-gray-300 space-y-1 shadow-inner">
-                <div className="flex items-center gap-1.5 pb-1 border-b border-gray-850">
-                  <div className="w-2 h-2 rounded-full bg-red-500/80" />
-                  <div className="w-2 h-2 rounded-full bg-yellow-500/80" />
-                  <div className="w-2 h-2 rounded-full bg-green-500/80" />
-                  <span className="text-[9px] text-gray-500 ml-1">Terminal</span>
-                </div>
-                <pre className="text-blue-300 whitespace-pre-wrap leading-tight pt-1">
-                  {item.codeSnippet}
-                </pre>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
 
 export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
@@ -431,8 +272,8 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* ── HORIZONTAL SCROLL SHOWCASE SECTION ───────────────────────────────────── */}
-        <HorizontalFeatureShowcase />
+        {/* ── INTERACTIVE VERTICAL SCROLL SHOWCASE SECTION ───────────────────────── */}
+        <VerticalFeatureShowcase />
 
         {/* ── NORMAL VERTICAL SCROLL SECTION AT BOTTOM ─────────────────────────────── */}
         <section className="glass-panel p-8 rounded-2xl border border-gray-800 space-y-6">
