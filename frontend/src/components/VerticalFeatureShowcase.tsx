@@ -177,9 +177,6 @@ export default function VerticalFeatureShowcase() {
           <h2 className="text-3xl font-extrabold text-white tracking-tight">
             High-Performance Platform Capabilities
           </h2>
-          <p className="text-xs text-gray-400 font-mono">
-            Scroll down with your mouse wheel over this section to trigger smooth horizontal slide animations!
-          </p>
         </div>
 
         {/* Navigation Step Pills & Controls */}
