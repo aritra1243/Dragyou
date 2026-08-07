@@ -51,6 +51,30 @@ func main() {
 		}
 	}()
 
+	// ── Render Free-Tier Keep-Alive Routine ───────────────────────────────
+	// Prevents automatic container shutdown on Render by pinging /health every 10 minutes
+	go func() {
+		keepAliveURL := os.Getenv("KEEP_ALIVE_URL")
+		if keepAliveURL == "" {
+			keepAliveURL = os.Getenv("RENDER_EXTERNAL_URL")
+		}
+
+		if keepAliveURL != "" {
+			log.Printf("⏳ Keep-Alive self-ping routine active for: %s/health", keepAliveURL)
+			// Ping every 10 minutes (Render free tier sleeps after 15 minutes of inactivity)
+			ticker := time.NewTicker(10 * time.Minute)
+			for range ticker.C {
+				resp, err := http.Get(keepAliveURL + "/health")
+				if err != nil {
+					log.Printf("keep-alive ping error: %v", err)
+				} else {
+					_ = resp.Body.Close()
+					log.Printf("keep-alive ping success (status %d)", resp.StatusCode)
+				}
+			}
+		}
+	}()
+
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server: %v", err)
 	}
